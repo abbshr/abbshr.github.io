@@ -14,7 +14,7 @@ metades:
 </head>
 <body>
 	<div class="block 3">
-		<h2>{{ page.title }}</h2>
+		<h1>{{ page.title }}</h1>
 		<p>{{ page.author }},</p><br>
 		<p>{{ page.info }},</p><br>
 		<p>@<a href="https://github.com/abbshr">github</a></p>
@@ -24,7 +24,7 @@ metades:
 	{% if jscool.ptr == "JavaScript" %}
 	<div class="block {{ forloop.index0 }}">
 		<a href="{{site.url}}{{jscool.url}}">
-			<h2>{{ jscool.title }}</h2>
+			<h1>{{ jscool.title }}</h1>
 		</a>
 		<p>{{ jscool.excerpt }}</p>
 	</div>
