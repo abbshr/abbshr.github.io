@@ -1,0 +1,101 @@
+---
+layout: poslay
+title: Node.js框架Express基础指南【Guide】【翻译】
+label: 技术文章
+kind: 
+mdmark: ran
+metakey:
+metades:
+---
+
+<tr>
+<td>
+<p class='lead'>
+为了网站应用的需要，同时也是为了自身技术的提升，翻译一下Express框架的教程，从指南guide开始。
+</p>
+<p>
+<strong>应用骨架</strong><br>
+要使用express创建应用，首先需要在本地创建一个存放应用的目录。<br>
+这里我们假设为myapp。注：以下的操作我们均在该目录下进行<br>
+下面来为当前应用（后面会提到全局安装）安装express：
+<pre>
+npm install express
+</pre>
+一旦npm提示安装完成，你的myapp目录中就会出现目录node_modules，包含了express模块的内容，可以用<code>npm ls</code>来检查。<br>
+在应用目录下分别敲入：
+<pre>
+express  //为当前应用创建express应用框架（一个典型的MVC框架……）
+npm install  //安装更新依赖
+</pre>
+一切就绪，现在开始用express构建你的app了！（其实在初始化之后，express默认完成了部分基本骨架，你可以直接<code>node app</code>启动应用并在浏览器下http://localhost:3000浏览应用预设效果）<br>
+修改app.js文件（其实文件名你可以随意，只不过在启动应用时对应到相应的文件名就行了），在app.js中写入:
+<pre>
+var express = require('express'); 
+// 第一步，引入express模块
+var app = express();
+//然后创建express应用的实例（app）
+//其中，express已帮你简化了node中的操作过程，一个express()就完成了好多前期工作，并自动将我们需要的实例返回
+</pre>
+（接下来我并没完全按照guide中的顺序来，有一些操作是可以放到后面细说的，不过必要的程序骨架需要先弄出来）<br>
+紧接着是对应用的整体配置，这里通过：
+<pre>
+var XXX = require(...); //引入应用所需的其他模块，例如路由模块等
+
+app.configure(function () {         //对app进行的配置主要在app.configure的回调函数内进行
+	app.set(...); //设置应用的端口、视图模板路径等
+	...
+	app.use(...); //引入需要的中间件（middleware），例如数据库，cookies，session，表单处理等等
+	...
+});
+
+app.configure(...); //可以写多个configure，这里可以用来配置应用的执行环境（开发模式、产品模式）
+</pre>
+然后是应用的核心，也就是所有功能的实现，将不同的请求对应到不同的路由处理模块上去：
+<pre>
+app.get('请求路径', XXX.***);  
+...
+app.post('请求路径', XXX.***);
+...
+app.all('请求路径', XXX.***);
+...
+//等等操作
+</pre>
+最后一步是启动服务器：
+<pre>
+app.listen(3000); //指定监听的端口，这里我们设为3000
+//listen把在node中的原生创建服务器操作都包括了
+...//可以进行一些控制台的操作
+</pre>
+到此为止，我们的应用骨架就明朗化了。在做完路由操作后，我们就可以通过如下方式启动应用了:
+<pre>
+node app.js
+</pre>
+以上所说的是一个完整应用的最原始框架，所以我们要对其进行填充，以便实现我们所需的功能。不过在此之前，我有必要把guide上接下来的重要内容翻译完。<br>
+<strong>使用全局方式安装express</strong><br>
+<pre>
+npm install -g express
+</pre>
+全局的安装方式会让express在你机器上任意的位置都是可用的（即：不必每创建一个项目都安装一次express），不过这种方式的局限性在于：他仅支持少部分模板引擎。<br>
+在创建框架之前你可以选择--help参数来查看express都有哪些安装时可用的参数。
+<pre>
+Usage: express [options]
+
+Options:
+
+  -h, --help          回显帮助信息
+  -V, --version       显示版本号
+  -s, --sessions      添加session的支持
+  -e, --ejs           选择ejs模板引擎安装（默认是jade引擎）
+  -J, --jshtml        选择jhtml模板引擎安装（默认是jade引擎）
+  -H, --hogan         添加对hogan.js引擎的支持
+  -c, --css   		  添加css语言的支持，例如css的超集less（默认是普通的css）
+  -f, --force         强制安装在非空目录下
+</pre>
+然后通过如下初始化应用目录（和前面说的一样，只不过是添加了参数而已）：
+<pre>
+express -c, -c2 ....
+</pre>
+至此，一个最最基本的应用诞生了，接下来，我们可以继续完善应用的配置（比如单向代理，错误处理等等）或选择写核心的代码，后几篇我会把Express的API手册翻译完，同时参考《Node.js开发指南》（顺便吐槽~~要不是这书过时了，我才不会费这劲去人家官方网站翻译文章。。o_O）一书做个开发网络应用的一个详细的summary。
+</p>
+</td>
+</tr>

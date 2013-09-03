@@ -1,0 +1,201 @@
+---
+layout: poslay
+title: Google App Script技术文档：ScriptDb部分【下】【翻译】
+label: 技术文章
+kind: 
+mdmark: ran
+metakey:
+metades:
+---
+
+<tr>
+<td>
+<p class="lead">
+承接上一个部分的内容，这篇把剩下的译完。
+<img class="img-polaroid" src="{{site.url}}/source/postimg/appscript1.PNG">
+</p>
+<hr>
+<p>
+<strong>7.数据的分页与排序（Pagination and Sort）</strong><br>
+*当你有大批想要按某种确定的方式进行处理的数据块时，分页对你来说绝对是很有用的。有两种不同的方式处理返回对象的分页：<br>
+<pre>
+var result = db.query(...).startAt(100).limit(50);
+//将会返回从第100个数据块开始的连续50个数据对象的集合。
+
+var result = db.query(...).paginate(3, 25);
+//将返回的数据对象集合分为25页，并最终返回第4页。
+</pre>
+默认的分页限制为200，上限为50000。<br>
+*尽管分页很有用，不过对数据定制其他标准更有效。你可以在query方法的返回值基础上调用sortBy()方法。默认情况下，排序是按词法顺序升序进行排列的。如果字段为数值，就是告诉ScriptDb通过数值来排序。同样，也可以指定按降序排列。<br>
+<pre>
+db.query(...).sortBy('address.city');
+db.query(...).sortBy('address.zip', db.NUMERIC);
+db.query(...).sortBy('address.zip', db.DESCENDING);
+db.query(...).sortBy('address.zip', db.ASCENDING, db.LEXICAL);
+</pre>
+注：数字组成的字符串例如‘21’也会像数字一样排序，因此{foo: 23}和{foo: '23'}在query时是等价的，尽管返回结果仍是储存在数据库中的原始对象。（意思是：为了排序处理可能会临时将某个数据转换成可排序的数据类型，但不会在排序过程中对数据进行某种本质上的类型转换，所以这个数据该什么样还是什么样。这个道理和JavaScript中的隐式类型转化是完全相同的）<br>
+有了这个临时的类型转化，你可以在查询（query）中认为{a: 23}和{a: '23'}是等价的.对于布尔值，所有非零数和非空字符串还有对象都是true，零和空字符串为false。<br>
+所以在查询某个字段(field)的值为任意时，你可以这样查找：{field: db.anyOf([true, false])},不过，数据库中定义了db.anyValue()方法同样可以实现此操作。<br>
+接下来的一段大概是讲这种数据库与传统数据库在数据组织上的差异。感觉就是在说非关系型数据库，理解Nosql就行了没啥好翻译的。<br>
+<strong>8.时间类型</strong><br>
+不支持直接存储JS的Date对象，原因之一是时间对象无法适应JSON与Object之间的来回转换；二是在处理时区上有限制。但你可以用如下方式存储时间数据：
+<pre>
+db.save({my_date_attr: my_date_object.getTime()});
+//保存时间数字为一个属性，或者按时间的格式分块保存属性：
+//getDay(),getFullYear(),getMonth(),getTime()
+var load_date = new Date(object_loaded.my_date_attr);
+//提取时间属性并构建为一个时间对象
+</pre>
+<strong>9.例子：电子表格与数据库</strong><br>
+*将电子表格中的数据拷贝到数据库中：<br>
+假设你有一个电表存了一些数据，第一行是属性名，接下来的内容是需要的数据。<br>
+<pre>
+function loadDatabaseFromSheet() {
+  var spreadsheet = SpreadsheetApp.openById(id_of_your_sheet);
+  var columns = spreadsheet.getLastColumn();
+  var data = sheet.getDataRange().getValues();
+  var keys = data[0];
+  var db = ScriptDb.getMyDb();
+  for (var row = 1; row < data.length; row++) {
+    var rowData = data[row];
+    var item = {};
+    for (var column = 0; column < keys.length; column++) {
+      item[keys[column]] = rowData[column];
+    }
+    db.save(item);
+  }
+}
+</pre>
+*将数据库中的数据对象拷贝到电子表格中：<br>
+<pre>
+function dumpDatabaseIntoSheet(result) {
+  var db = ScriptDb.getMyDb();
+  // 你可以改变查询模式并以获取你希望呈现的数据来填充表格
+  // 注意默认的查询结果有数量限制
+  var result = db.query({});
+  var data = [];
+  var keys = {};
+
+  // 加载数据并找出数据对象的key
+  while (result.hasNext()) {
+    var item = result.next();
+    var itemKeys = Object.keys(item);
+    for (var i = 0; i < itemKeys.length; i++) {
+      if (typeof(item[itemKeys[i]]) != 'function') {
+        keys[itemKeys[i]] = true;
+      }
+    }
+    data.push(item);
+  }
+
+  var headings = Object.keys(keys);
+  var values = [headings];
+  // 得到一个包含查询结果中的值的数组
+  for (var rownum = 0 ; rownum < data.length; rownum++) {
+    var thisRow = [];
+    var item = data[rownum];
+    for (var i = 0; i < headings.length; i++) {
+      var field = headings[i];
+      var thisValue = item[field];
+      if (thisValue == undefined || typeof(thisValue) == 'function') {
+        thisValue = null;
+      }
+      thisRow.push(thisValue);
+    }
+    values.push(thisRow);
+  }
+
+  var spreadsheet = SpreadsheetApp.openById(**id_of_some_existing_sheet**);
+  var newSheet = spreadsheet.insertSheet(); // make a new sheet
+  var range = newSheet.getRange(1, 1, values.length, headings.length);
+  range.setValues(values);
+}
+</pre>
+在这个例子中，列的排列顺序是伪随机的，如果你希望一个指定的顺序，需要改变例子中的这一行代码：
+<pre>
+var headings = Object.keys(keys);
+</pre>
+改为:
+<pre>
+var headings = [你想要的表头排列（是一个数组）];
+</pre>
+<strong>9.删除全部数据</strong><br>
+<pre>
+function deleteAll() {
+  var db = ScriptDb.getMyDb();
+  while (true) {
+    var result = db.query({}); // 获取所有数据对象集合
+    if (result.getSize() == 0) {
+      break;
+    }
+    while (result.hasNext()) {
+      db.remove(result.next());
+    }
+  }
+}
+</pre>
+注：根据数据量的大小查询时间会有所改变，当数据量很大时，一旦超出了默认的脚本执行时间上限（6 min），则脚本自动终止，但此时数据可能还没有删除完毕，因此可再次执行脚本以便确信数据已被清空<br>
+<strong>10.对控制台的操作</strong><br>
+控制台提供了一个输出命令：
+<pre>
+Logger.log(...);
+//可以任意信息输出在屏幕上
+//在app script中console、window、document等对象是不可用的！
+//因此你不能用console.log()或window.alert()抑或是document.write()来输出内容
+</pre>
+<strong>11.ScriptDb与其他脚本库</strong><br>
+这里首先需要明确的一点是：ScriptDb与当前项目绑定的，这意味着在调用其他库时库中的db将成为当前项目的db实例。<br>
+*创建一个库(假设名字为Ran)并在项目中使用它：<br>
+<pre>
+function getDb() {
+  return ScriptDb.getMyDb();
+}
+//库中的函数，返回了对该库绑定的数据库的一个引用
+</pre>
+<pre>
+function somethingInMyProject() {
+  var db = Ran.getDb();
+  ....
+}
+//在当前项目中调用库Ran的一个函数从而获取那个库的所属数据库的实例
+</pre>
+*将当前项目的数据库实例传入库中：<br>
+<pre>
+function getCurrentDb(db) {
+    db....
+}
+//这样就可以为当前的数据库增加自定义的操作：
+//Ran.getCurrentDb(ScriptDb.getMyDb());
+</pre>
+<strong>12.FAQ</strong><br>
+*关于数据库的配额：
+<ul>
+<li>50MB-普通使用者</li>
+<li>100MB-每个普通Google Apps账户</li>
+<li>200MB-商用/教育/政府机构的Google Apps账户</li>
+</ul>
+*发布自己的网络应用：<br>
+所有使用者共享一个数据库而不是为每位访问者划分一个独立空间<br>
+*关于性能问题:<br>
+第一次执行操作时可能稍慢，大约50ms，因为App在操作数据库之前需要加载一些数据库的信息。至于对数据的操作取决于数据对象的大小和数量<br>
+*每个数据对象的大小限制：<br>
+上限大约8~9KB<br>
+*当我删除项目时，数据库是否会删除？<br>
+是的<br>
+*对数据对象存储数量的限制:<br>
+上限50000个<br>
+</p>
+</td>
+</tr>　
+
+
+
+
+
+
+
+
+
+
+
+

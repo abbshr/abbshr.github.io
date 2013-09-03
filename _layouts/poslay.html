@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<!-- poslay模板：所有post使用 -->
+
+<html lang="en">
+<head>
+{% include header.html %}
+</head>
+
+<body background>
+<style>
+.ds-powered-by {
+	display:none;
+}
+</style>
+<div class="container">
+<div class="row">
+<div class="span8 offset2">
+<blockquote><h2>启动.原始码</h2>
+<small>Ran Aizen in 2013</small>
+</blockquote>
+</div>
+</div>
+</div>
+{% include navbar.html %}
+<div class="container">
+<div class="row">
+<div class="span8 offset2">
+<div class="page-header">
+  <h1>{{ page.title }} <small>{{ page.date | date_to_string }}</small></h1>
+</div>
+{{ content }}
+<br>
+<table class="table table-bordered table-hover">
+<tbody>
+{% if page.label %}
+<tr>
+<td>
+标签：<span class="label {{ page.kind }}">{{ page.label }}</span>
+</td>
+</tr>
+{% endif %}
+{% if page.mdmark == "ran" %}
+<tr>
+<td>
+Ran.Aizen原创
+</td>
+</tr>
+{% endif %}
+<tr>
+<td>
+发布时间：{{ page.date | date_to_string }}
+</td>
+</tr>
+</tbody>
+</table>
+{% if page.ptr == "JavaScript" %}
+<ul class="nav nav-tabs nav-stacked">
+<li class="active"><a>更多的JavaScript酷玩系列</a></li>
+{% for other in site.posts %}
+	{% if other.ptr == "JavaScript" %}
+		{% if other.url != page.url %}
+			<li><a href="{{site.url}}{{other.url}}">{{other.title}}</a></li>
+		{% endif %}
+	{% endif %}
+{% endfor %}
+</ul>
+{% endif %}
+<div class="ds-thread"></div>
+<script type="text/javascript">
+var duoshuoQuery = {short_name:"abbshr"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = 'http://static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		document.getElementsByTagName('body')[0].appendChild(ds);
+	})();
+</script>
+</div>
+</div>
+</div>
+{% include footer.html %}
+</body>
+</html>

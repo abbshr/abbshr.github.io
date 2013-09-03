@@ -1,0 +1,43 @@
+---
+layout: poslay
+title: Git密钥创建
+label: git&密钥
+kind: label-inverse
+ptr: 
+mdmark: 
+metakey: 
+metades:
+---
+
+<tr>
+<td>
+<p>
+这是一篇关于Git最基本的操作指南，应亮叔要求，同时也是今天在lab配置时出了点插曲，特此将最基本的操作，从生成rsa到push等等列出，以供参考。
+<br>
+git的安装方法就不说了<br><br>
+<strong>1.添加用户信息</strong><br>
+<pre>
+$ git config --global user.name "你的用户名"
+$ git config --global user.email "你的邮箱"
+</pre>
+<br>
+<strong>2.添加密钥</strong><br>
+<pre>
+$ ssh-keygen -t rsa -C
+</pre>
+如果不在乎的话，完全可以一路按Enter……最后它会生成两个文件，其中有一个后缀是pub，打开它复制全部内容，粘贴到git服务提供的add ssh处。到此为止，就算是把你的机器与git服务器建立了一个允许自由通信关系了。
+</p>
+</td>
+</tr>　
+
+
+
+
+
+
+
+
+
+
+
+

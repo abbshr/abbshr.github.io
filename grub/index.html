@@ -1,0 +1,15 @@
+---
+layout: default
+title: GRUB系列
+metakey: GRUB系列,SouFii,Blog,JavaScript,Node.js,个人博客
+metades: GRUB教程，SouFii的博客
+---
+
+<ul class="nav nav-pills nav-stacked">
+<li class="active"><a>{{page.title}}</a></li>
+{% for grub in site.posts %}
+	{% if grub.ptr == "GRUB" %}
+		<li><a href="{{site.url}}{{grub.url}}">{{grub.title}}</a></li>
+	{% endif %}
+{% endfor %}
+</ul>

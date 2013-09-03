@@ -1,0 +1,99 @@
+body {
+	background: #FFF;
+	font-size: 30px;
+	font-family: 'Chelsea Market', Georgia, serif;
+	text-align: center;
+    margin: 0;
+    padding: 0;
+}
+
+h1 {
+	font-size: 60px;
+	font-weight: normal;
+	margin: 0;
+    font-family: 'Chelsea Market', Georgia, serif;
+    color: #000;
+	line-height: 1;
+}
+
+h2 {
+	font-size: 70px;
+	font-weight: normal;
+	margin: 0;
+	color: #FFB000;
+    font-family: 'Chelsea Market', Georgia, serif;
+	text-transform: lowercase;
+}
+
+h3 {
+	font-size: 40px;
+	font-weight: normal;
+	margin: 0;
+    margin-top: 40px;
+	text-transform: lowercase;
+}
+
+p {
+	width: 960px;
+	margin: 40px auto;
+	color: #000;
+    line-height: 200%;
+}
+
+a, a:visited {
+	color: #000;
+    font-size: 12px;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+ul {
+	list-style: none;
+}
+
+
+pre {
+	font-size: 18px;
+}
+
+blockquote {
+	text-align: left;
+	width: 720px;
+	margin: 10px auto;
+	background: #C5C3DE;
+	border: solid 2px #69697A;
+	padding: 0 40px;
+}
+
+code {
+    background-color: #000;
+	font-style: normal;
+    border-radius: 10px;
+    color: white;
+    padding: 5px 15px;
+    font-family: menlo, monospace;
+}
+
+.block {
+	position: relative;
+	margin: 0;
+	width: 100%;
+    color: white;
+    padding-top: 80px;
+    padding-bottom: 80px;
+}
+
+.block[class$="1"]{background-color: #348fd4;}  .block[class$="1"] h2{color: #06406c;}  .block[class$="1"] p{color: #06406c;}
+.block[class$="2"]{background-color: #06406c;}  .block[class$="2"] h2{color: #FFF}  .block[class$="2"] p{color: #FFF}
+.block[class$="3"]{background-color: #FFF;}  	.block[class$="3"] h2{color: #000;}  .block[class$="3"] p{color: #000;}
+.block[class$="4"]{background-color: #4c0d09;}  .block[class$="4"] h2{color: #d3b2af;}  .block[class$="4"] p{color: #d3b2af;}
+.block[class$="5"]{background-color: #cc4037;}  .block[class$="5"] h2{color: #4c0d09;}  .block[class$="5"] p{color: #4c0d09;}
+.block[class$="6"]{background-color: #ffc19f;}  .block[class$="6"] h2{color: #cc4037;}  .block[class$="6"] p{color: #cc4037;}
+.block[class$="7"]{background-color: #000;}     .block[class$="7"] h2{color: #FFF;}  .block[class$="7"] p{color: #FFF;}
+.block[class$="8"]{background-color: #F2F2F2;}  .block[class$="8"] h2{color: #666;}  .block[class$="8"] p{color: #666;}
+.block[class$="9"]{background-color: #348fd4;}  .block[class$="9"] h2{color: #06406c;}  .block[class$="9"] p{color: #000;}
+.block[class$="0"]{background-color: #fff8c9;}  .block[class$="0"] h2{color: #2d2700;}  .block[class$="0"] p{color: #615400;}
+

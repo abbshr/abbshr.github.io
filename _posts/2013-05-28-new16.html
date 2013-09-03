@@ -1,0 +1,98 @@
+---
+layout: poslay
+title: ubutnt下的双显卡切换——打造高性能且节能的ubuntu笔记本
+label: 技术文章
+kind: 
+mdmark: ran
+metakey:
+metades:
+---
+
+<tr>
+<td>
+<p class='lead'>
+解决ubuntu系统的耗电快,发热严重,风扇狂转问题。   
+就是：
+关闭独显，使用集显。
+调剂硬盘转速与电源性能优化。
+CPU节能设置
+</p>
+<p>
+<strong>双显卡切换</strong><br>
+1.更新显卡信息，非常重要，否则可能识别出错：
+<pre>sudo update-pciids</pre>
+等待‘一会’就可完成更新。。。<br>
+2.安装bumblebee<br>
+打开终端，依次执行下面的代码即可完成安装：
+<pre>
+sudo add-apt-repository ppa:bumblebee/stable
+sudo apt-get update
+sudo apt-get install bumblebee bumblebee-nvidia
+sudo reboot
+</pre>
+3.重启系统。<br>
+4.然后执行代码
+<pre>lspci |grep vga</pre>
+注意，下面列出了Intel集显和NVIDIA独显的工作情况，NVIDIA显卡信息后面有个“rev ff”，表示独显已经关闭，若NVIDIA显卡信息后面显示“rev+数字”的形式，表示独显已经开启，正在工作。<br>
+如果想再开启独显，键入如下命令：
+<pre>
+glxgears
+</pre>
+他会提示你用****命令安装 glxgears，按提示做，然后：
+<pre>
+optirun glxgears   
+</pre>
+再次关闭独显的话直接点叉。<br>
+*注：打开N卡设置：
+<pre>
+optirun nvidia-settings -c :8
+</pre>
+<strong>硬盘节能</strong><br>
+只需安装 laptop-mode-tools
+打开终端，执行：
+<pre>
+sudo apt-get install laptop-mode-tools
+</pre>
+就可以完成安装。这个工具可以调节硬盘转速，默认使用AC电源时最高性能（转速最快），使用电池时则相反。<br>
+执行：
+<pre>
+cat /proc/sys/vm/laptop_mode
+</pre>
+如果使用连接电源则返回值为0，使用电池则返回其他值，说明开启成功。<br>
+<strong>CPU节能设置，CPU频率动态管理。</strong><br>
+注：只支持那些频率可调的CPU，比如intel的I系列CPU，一般笔记本的处理器为了节能都是可调的。<br>
+首先安装Cpufreqd<br>
+打开终端，依次执行：
+<pre>
+sudo add-apt-repository ppa:artfwo/ppa
+sudo apt-get update
+sudo apt-get install cpufreqd indicator-cpufreq
+</pre>
+安装完成！<br>
+然后重启即可看到右上角的区域有个像芯片似的标志，单击他会弹出菜单，看最下面的几个选项：<br>
+conservative——按需调节cpu频率，不用时调到最低，用时按需分配调节。<br>
+ondemand——默任，不用时调到最低，一旦用到时调到极限<br>
+powersave——无论何时都最低频率<br>
+performance——无论何时都最高频率<br>
+<br>
+选择即可。<br>
+*注：若经过配置后发现鼠标经常被关闭，咱们不用紧张，是这样的：因为开启了节能控制，所以当电源没插时，笔记本会自动进入电池供电模式（即节能模式），为了省电，连鼠标也被设成“几秒中不动的话就自动挂起”，这时左键或右键单击一下即可唤醒鼠标。这种情况只有当电池供电是才会发生！！<br>
+（其实开始时我也吓一跳，后来慢慢发现规律的）<br>
+如果要关闭这个设置：<br>
+终端输入：
+<pre>
+sudo gedit /etc/laptop-mode/conf.d/usb-autosuspend.conf
+</pre>
+弹出配置文件，找到：
+<pre>
+AUTOSUSPEND_USBID_BLACKLIST=“”
+</pre>
+在双引号内写上鼠标设备的ID （如何查找ID？终端输入：lsusb   ，找到后面写mouse那一行，复制‘ID’对应的标号。）
+或者也可以延长睡眠等待时间，初始默认2秒。找到：
+<pre>
+AUTOSUSPEND_TIMEOUT=
+</pre>
+在等号后面改写秒数。
+</p>
+</td>
+</tr>

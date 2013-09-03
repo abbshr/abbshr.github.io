@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+
+<!-- default模板：所有单页使用 -->
+
+<html lang="en">
+<head>
+{% include header.html %}
+</head>
+
+<body background>
+<div class="container">
+<div class="row">
+<div class="span8 offset2">
+<blockquote><h2>启动.原始码</h2>
+<small>Ran Aizen in 2013</small>
+</blockquote>
+</div>
+</div>
+</div>
+{% include navbar.html %}
+<div class="container">
+<div class="row">
+<div class="span8 offset2">
+{{content}}
+</div>
+</div>
+</div>
+{% include footer.html %}
+</body>
+</html>

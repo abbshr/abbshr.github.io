@@ -1,0 +1,36 @@
+---
+layout: poslay
+title: 原生AJAX的JSON格式数据传输
+label: AJAX
+kind: label-important
+mdmark: 
+metakey: SouFii的博客,Blog
+metades: 
+---
+
+<tr>
+<td>
+昨天大体了解了AJAX，由于涉及到了网络通信协议，又不得不去查阅关于HTTP/HTTPS的相关资料；又因其牵扯到请求方式，因此又去学http请求。<br>
+以前从没想过要去了解协议神马，只不过在既有的协议上做一些事罢了，所以产生了一个让我很尴尬的局面—我在github上问大牛：“网站post过去的数据都是明文的，这岂不是个漏洞吗？难道你们没发现？”，大牛们说：“http协议都是明文传送的，要加密只能用https”。其实协议相对于我之前做的东西都是透明的，好多原理性的、底层的知识都没掌握，甚至不了解，这在是web开发中一定是致命的，还好我这次有机会关注到了这个层面。
+<br>
+今天原以为了解了http的请求能把AJAX的数据传输搞明白了，没想到send时还是出错，于是被迫改用普通文本格式传送。。这倒可以，不过我要的是JSON格式，现在AJAX一定可以支持这种数据格式的，但为什么我用时就出错呢？一共就4行代码，我排除掉open、new XMLHttpRequest两行，那问题肯定出在剩下的两行里了~然后忽然注意到post请求方式的请求头设置：setRequestHeader，以前都是用普通文本，但这次是JSON，想必会在请求头里有所不同，需要告诉服务器：“我传过去的实体使用**格式的”。然后在网上查了一下几类请求报头的写法，终于发现了json。
+<br>
+<pre>
+//最开始的写法
+var ajax = new XMLHttpRequest();
+ajax.open('POST', 'http://blogos.ap01.aws.af.cm/reg', true);
+ajax.setRequestHeader("Content-Type", "application/x-www-form-urlencoded"); //关键就是这的问题！
+ajax.send("{name:'akl', password:'akl', password-repeat:'akl', email:'ak@ak.com'}");
+
+//后来尝试换用普通实体send：
+ajax.send("name=mnt&password=mnt&password-repeat=mnt&email=msn@ms.com");
+//虽说这样做成功了，不过这并不是JSON数据格式，要想用JSON应该如何做？
+
+//查了好多资料，发现是请求头信息应该改写：
+ajax.setRequestHeader("Content-Type", "application/json; charset=utf-8"); //这样服务器就知道你要传输的数据格式为JSON
+
+//最后：
+ajax.send(JSON.stringify({'name':"akl", 'password':"akl", 'password-repeat':"akl", 'email':"ak@ak.com"}));
+</pre>
+</td>
+</tr>　

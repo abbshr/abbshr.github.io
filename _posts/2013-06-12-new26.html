@@ -1,0 +1,71 @@
+---
+layout: poslay
+title: ubuntu12.04+ 玩转root
+label: 技术文章
+kind: 
+mdmark: 
+metakey: SouFii的博客,Blog,ubuntu,linux
+metades: 
+---
+
+<tr>
+<td>
+<p class="lead">
+root权限相当于linux系统的顶级管理员，（windows的administrator那种程度的管理员和root是比不了的）虽说root让你的操作方便了不少，玩起系统来也特爽，可是他也带来不少问题，真可谓：“root一时爽，全家火葬场”。。。
+</p>
+<p>
+<strong>root怎么用？。。</strong><br>
+在终端启用root账户(也就是你第一次使用root)：
+<pre>
+sudo passwd root
+</pre>
+会回显：
+<pre>
+Enter new UNIX password: (在这输入你为root账户指定的密码）
+Retype new UNIX password: (确定你输入的密码）
+passwd: password updated successfully
+</pre>
+以后，如果再次想获得root权限，只需进行如下的操作：
+<pre>
+su root
+Password: (在此输入你上面设置的密码）
+</pre>
+如果要再次禁用 root 帐号，那么可以执行:
+<pre>
+sudo passwd -l root
+</pre>
+root带来的问题：<br>
+<strong>使用root用户登录系统后，音量大小无法调节：</strong><br>
+root用户登录之后运行：
+<pre>
+pulseaudio --start --log-target=syslog
+</pre>
+<strong>把‘在终端打开’加到右键菜单：</strong>
+<pre>
+sudo apt-get install nautilus-open-terminal
+</pre>
+<strong>在终端打开文件、文件夹：</strong>
+<pre>
+nautilus  /文件夹路径
+</pre>
+<strong>以root权限访问目录：</strong>
+<pre>
+chmod o+r /指定的目录
+</pre>
+改回
+<pre>
+chmod o-r /指定的目录
+</pre>
+<strong>在启动界面增加‘root’权限登录系统：</strong>
+<pre>
+sudo gedit /etc/lightdm/lightdm.conf.
+</pre>
+在下面增加
+<pre>
+greeter-show-manual-login=true 
+allow-guest=false  
+</pre>
+保存即可。
+</p>
+</td>
+</tr>　
