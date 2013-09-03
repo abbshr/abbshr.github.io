@@ -23,9 +23,8 @@ metades:
 {% for jscool in site.posts %}
 	{% if jscool.ptr == "JavaScript" %}
 	<div class="block {{ forloop.index0 }}">
-		<h1>{{ jscool.title }}</h1>
+		<a href="{{site.url}}{{jscool.url}}"><h2>{{ jscool.title }}</h2></a>
 		<p>{{ jscool.excerpt }}</p>
-		<a href="{{site.url}}{{jscool.url}}">全文链接</a>
 	</div>
 	{% endif %}
 {% endfor %}
