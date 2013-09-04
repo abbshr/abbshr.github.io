@@ -14,9 +14,9 @@ metades: JavaScript花式玩法『贰』———基本技巧，SouFii的博客
 ##减少全局变量的使用
 借此说个题外话，也算是个灵活运用（浏览器全局环境下:）
 
-		window.ran   <=等价于=>
-		window["ran"]   <=等价于=>
-		this.ran
+	window.ran   <=等价于=>
+	window["ran"]   <=等价于=>
+	this.ran
 	
 因此，在有时不知道宿主环境的情况下，可以借用`this`
 
@@ -46,14 +46,14 @@ metades: JavaScript花式玩法『贰』———基本技巧，SouFii的博客
 ##两种声明局部变量的方式
 1.我们熟知的：在函数内通过var关键字声明变量	  
 2.做函数的参数：
-
-		var foo = 1, 
-			  bar = 2,
-			  i = 2;
-		function test(i) {
-			  i = 5;
-			  console.log(i);
-		}
-		test(10);    //会返回5
-		console.log(i);   //会返回2
-		//因此，可用这种方法创建局部变量i而不污染全局i，（至于原因。。。我会在后面的‘特性：变量名称解析顺序’中提）
+	
+	var foo = 1, 
+	    bar = 2,
+	    i = 2;
+	function test(i) {
+	    i = 5;
+	    console.log(i);
+	}
+	test(10);    //会返回5
+	console.log(i);   //会返回2
+	//因此，可用这种方法创建局部变量i而不污染全局i，（至于原因。。。我会在后面的‘特性：变量名称解析顺序’中提）
