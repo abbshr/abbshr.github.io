@@ -9,9 +9,9 @@ metades: Ran Aizen的个人博客，记录web和linux
 <h1 class="center">最新文章</h1>
 {% for post in site.posts limit:5 %}
 	<div class="block {{ forloop.index0 }}">
-		<h2><a href="{{site.url}}{{post.url}}" class="center">{{ post.title }}</a></h2>
+		<h2 class="center"><a href="{{site.url}}{{post.url}}">{{ post.title }}</a></h2>
 		<p>{{ post.excerpt }}</p>
 		<h3 class="center">日期:{{ post.date | date_to_long_string }}</h3>
-		<label>{{ post.label }}</label>
+		<label class="center">{{ post.label }}</label>
 	</div>
 {% endfor %}

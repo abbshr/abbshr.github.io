@@ -49,7 +49,6 @@ p {
 
 a, a:visited {
 	color: #d35c6f;
-    font-size: 12px;
     text-decoration: none;
     transition:color 0.3s linear;
     -moz-transition:color 0.3s linear;
