@@ -1,34 +1,41 @@
 body {
 	background: #FFF;
-	font-size: 30px;
-	font-family: 'Chelsea Market', Georgia, serif;
-	text-align: center;
+	font-size: 25px;
+	font-family: "Gibson", "Helvetica Neue", "Helvetica-Neue", helvetica, sans-serif;
+	border-top: 5px #d35c6f solid;
     margin: 0;
     padding: 0;
 }
 
+::selection {
+  background: rgb(192, 96, 96);
+  color: rgb(41, 49, 54);
+}
+
 h1 {
-	font-size: 60px;
+	font-size: 70px;
 	font-weight: normal;
 	margin: 0;
-    font-family: 'Chelsea Market', Georgia, serif;
-    color: #000;
+    font-family: "Gibson", "Helvetica Neue", "Helvetica-Neue", helvetica, sans-serif;
+    color: #d35c6f;
 	line-height: 1;
 }
 
 h2 {
-	font-size: 70px;
+	font-size: 60px;
 	font-weight: normal;
 	margin: 0;
-	color: #FFB000;
-    font-family: 'Chelsea Market', Georgia, serif;
+	color: #d35c6f;
+    font-family: "Gibson", "Helvetica Neue", "Helvetica-Neue", helvetica, sans-serif;
 }
 
 h3 {
 	font-size: 40px;
 	font-weight: normal;
+	font-family: "Gibson", "Helvetica Neue", "Helvetica-Neue", helvetica, sans-serif;
 	margin: 0;
     margin-top: 40px;
+    color: #d35c6f;
 	text-transform: lowercase;
 }
 
@@ -37,25 +44,33 @@ p {
 	margin: 40px auto;
 	color: #000;
     line-height: 200%;
+    font-family: "Gibson", "Helvetica Neue", "Helvetica-Neue", helvetica, sans-serif;
 }
 
 a, a:visited {
-	color: #000;
+	color: #d35c6f;
     font-size: 12px;
     text-decoration: none;
+    transition:color 0.3s linear;
+    -moz-transition:color 0.3s linear;
+	-webkit-transition:color 0.3s linear;
 }
 
 a:hover {
-    text-decoration: underline;
+    color: #000;
 }
 
 ul {
 	list-style: none;
 }
 
-
 pre {
+	background-color: #46483e;
+	border-radius: 7px;
 	font-size: 18px;
+	color: #D8BABA;
+    padding: 5px 15px;
+    font-family: consolas, monospace;
 }
 
 blockquote {
@@ -76,6 +91,10 @@ code {
     font-family: menlo, monospace;
 }
 
+.center {
+	text-align: center;
+}
+
 .block {
 	position: relative;
 	margin: 0;
@@ -83,6 +102,8 @@ code {
     color: white;
     padding-top: 80px;
     padding-bottom: 80px;
+  	padding-right: 165px;
+  	padding-left: 165px;
 }
 
 .block[class$="1"]{background-color: #348fd4;}  .block[class$="1"] h2{color: #06406c;}  .block[class$="1"] p{color: #06406c;}
@@ -95,4 +116,3 @@ code {
 .block[class$="8"]{background-color: #F2F2F2;}  .block[class$="8"] h2{color: #666;}  .block[class$="8"] p{color: #666;}
 .block[class$="9"]{background-color: #64ABEC;}  .block[class$="9"] h2{color: #06406c;}  .block[class$="9"] p{color: #000;}
 .block[class$="0"]{background-color: #fff8c9;}  .block[class$="0"] h2{color: #2d2700;}  .block[class$="0"] p{color: #615400;}
-
