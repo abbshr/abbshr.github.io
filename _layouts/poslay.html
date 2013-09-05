@@ -11,7 +11,7 @@
   <h2 class="center">
   	{{ page.title }} 
   </h2>
-  <h3>
+  <h3 class="center">
   	{{ page.date | date_to_string }}
   </h3>
   {{ content }}
@@ -28,7 +28,7 @@
 </div>
 
 {% if page.ptr == "JavaScript" %}
-<ul class="">
+<ul class="center">
 	<li class=""><a>更多的JavaScript酷玩系列</a></li>
 {% for other in site.posts %}
 	{% if other.ptr == "JavaScript" %}

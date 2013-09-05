@@ -17,8 +17,10 @@ h1 {
 	font-weight: normal;
 	margin: 0;
     font-family: "Gibson", "Helvetica Neue", "Helvetica-Neue", helvetica, sans-serif;
-    color: #d35c6f;
+    color: #000;
 	line-height: 1;
+	padding-right: 200px;
+  	padding-left: 200px;
 }
 
 h2 {
@@ -27,6 +29,8 @@ h2 {
 	margin: 0;
 	color: #d35c6f;
     font-family: "Gibson", "Helvetica Neue", "Helvetica-Neue", helvetica, sans-serif;
+    padding-right: 200px;
+  	padding-left: 200px;
 }
 
 h3 {
@@ -37,6 +41,8 @@ h3 {
     margin-top: 40px;
     color: #d35c6f;
 	text-transform: lowercase;
+	padding-right: 200px;
+  	padding-left: 200px;
 }
 
 p {
@@ -47,8 +53,8 @@ p {
     font-family: "Gibson", "Helvetica Neue", "Helvetica-Neue", helvetica, sans-serif;
 }
 
-a, a:visited {
-	color: #d35c6f;
+a {
+	color: inherit;
     text-decoration: none;
     transition:color 0.3s linear;
     -moz-transition:color 0.3s linear;
@@ -56,7 +62,15 @@ a, a:visited {
 }
 
 a:hover {
-    color: #000;
+    color: #d35c6f;
+}
+
+p a {
+	color: #d35c6f;
+    text-decoration: none;
+    transition:color 0.3s linear;
+    -moz-transition:color 0.3s linear;
+	-webkit-transition:color 0.3s linear;
 }
 
 ul {
@@ -94,8 +108,12 @@ label {
 	background-color: #D8D8D8;
 	font-size: 13px;
     border-radius: 15px;
-    color: 000;
+    color: #000;
     padding: 5px 15px;
+}
+
+nav {
+	color: #000;
 }
 
 .center {
@@ -109,8 +127,6 @@ label {
     color: white;
     padding-top: 80px;
     padding-bottom: 80px;
-  	padding-right: 165px;
-  	padding-left: 165px;
 }
 
 .block[class$="1"]{background-color: #348fd4;}  .block[class$="1"] h2{color: #06406c;}  .block[class$="1"] p{color: #06406c;}

@@ -5,8 +5,6 @@ metakey: Ran Aizen,网络技术,SouFii,Blog,JavaScript,Node.js,个人博客
 metades: Ran Aizen的个人博客，记录web和linux
 ---
 
-
-<h1 class="center">最新文章</h1>
 {% for post in site.posts limit:5 %}
 	<div class="block {{ forloop.index0 }}">
 		<h2 class="center"><a href="{{site.url}}{{post.url}}">{{ post.title }}</a></h2>
