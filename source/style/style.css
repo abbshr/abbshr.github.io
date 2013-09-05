@@ -44,6 +44,17 @@ h3 {
   	padding-left: 200px;
 }
 
+h4 {
+	font-size: 30px;
+	font-weight: normal;
+	font-family: "Gibson", "Helvetica Neue", "Helvetica-Neue", helvetica, sans-serif;
+	margin: 0;
+    margin-top: 40px;
+    color: #d35c6f;
+	padding-right: 200px;
+  	padding-left: 200px;
+}
+
 p {
 	width: 960px;
 	margin: 40px auto;
