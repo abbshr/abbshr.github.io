@@ -40,7 +40,6 @@ h3 {
 	margin: 0;
     margin-top: 40px;
     color: #d35c6f;
-	text-transform: lowercase;
 	padding-right: 200px;
   	padding-left: 200px;
 }
@@ -79,29 +78,27 @@ ul {
 
 pre {
 	background-color: #46483e;
-	border-radius: 7px;
+	border-radius: 0px;
 	font-size: 18px;
 	color: #D8BABA;
     padding: 5px 15px;
     font-family: consolas, monospace;
+    padding-right: 500px;
+  	padding-left: 500px;
 }
 
 blockquote {
-	text-align: left;
-	width: 720px;
+	width: 1000px;
 	margin: 10px auto;
-	background: #C5C3DE;
-	border: solid 2px #69697A;
+	background: #fff;
+	border: solid 2px #d35c6f;
 	padding: 0 40px;
 }
 
-code {
-    background-color: #000;
-	font-style: normal;
+code { 
     border-radius: 10px;
-    color: white;
-    padding: 5px 15px;
-    font-family: menlo, monospace;
+    color: #D8BABA;
+    font-family: consolas, monospace;
 }
 
 label {

@@ -14,16 +14,16 @@ metades:
 </head>
 <body>
 	<div class="block 3">
-		<h2>{{ page.title }}</h2>
-		<p>{{ page.author }},</p>
-		<p>{{ page.info }},</p>
-		<p>@<a href="https://github.com/abbshr">github</a></p>
+		<h2 class="center">{{ page.title }}</h2>
+		<p class="center">{{ page.author }},</p>
+		<p class="center">{{ page.info }},</p>
+		<p class="center">@<a href="https://github.com/abbshr">github</a></p>
 	</div>
 
 {% for jscool in site.posts %}
 	{% if jscool.ptr == "JavaScript" %}
 	<div class="block {{ forloop.index0 }}">
-		<a href="{{site.url}}{{jscool.url}}"><h2>{{ jscool.title }}</h2></a>
+		<a href="{{site.url}}{{jscool.url}}"><h2 class="center">{{ jscool.title }}</h2></a>
 		<p>{{ jscool.excerpt }}</p>
 	</div>
 	{% endif %}
