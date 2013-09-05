@@ -85,6 +85,13 @@ p a {
 
 ul {
 	list-style: none;
+	padding-right: 200px;
+  	padding-left: 200px;
+}
+
+ol {
+	padding-right: 200px;
+  	padding-left: 200px;
 }
 
 pre {
@@ -132,7 +139,7 @@ nav {
 	position: relative;
 	margin: 0;
 	width: 100%;
-    color: white;
+    color: #000;
     padding-top: 80px;
     padding-bottom: 80px;
 }
