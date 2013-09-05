@@ -101,8 +101,8 @@ pre {
 	color: #D8BABA;
     padding: 5px 15px;
     font-family: consolas, monospace;
-    padding-right: 500px;
-  	padding-left: 500px;
+    padding-right: 20%;
+  	padding-left: 20%;
 }
 
 blockquote {
