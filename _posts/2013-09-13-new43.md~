@@ -111,7 +111,7 @@ ex：
 	console.log(copy);
 	// <Buffer 74 65 73 74>
 
-###`buf[index]`
+###buf[index]
 通过索引获取或设置buf的指定字符。取得的值是单个字节，范围是0~255或十六进制的0x00~0xFF
 
 ###buf.length
