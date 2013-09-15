@@ -1,0 +1,12 @@
+---
+layout: poslay
+title: 谈谈Node.js的优劣
+label: 酷玩JavaScript
+kind: label-important
+ptr: JavaScript
+mdmark: ran
+metakey: 
+metades:
+---
+
+node.js的单线程就是主线程，主线程是什么？就是事件队列。当发生一个请求后，node.js只是在这个事件队列中注册一个事件，然后就不管了，具体这个事件的执行就交给了os(i/o,database)不同的进程，等os完成后，通过回调(node.js会轮询)再回到主线程的处理，所以node.js单线程是指自己的主线程，而不是所有的操作都是在这个线程里，这个线程只是事件调度，事件的执行都是交给操作系统在其它的线程中完成。所以node.js是非I/O阻塞，而不是非cpu阻塞,那么node.js会出现cpu阻塞，是不是性能就会有问题呢？不是的，就象Nginx一样，因为对web而言运算是非常非常小的，一次I/O的操作的时间远大于你做百万次的for循环。
