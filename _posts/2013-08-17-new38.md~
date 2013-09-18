@@ -119,5 +119,4 @@ EventEmitter类的一个静态方法，返回给定事件的监听器数量, emi
 	//然后开始执行
 	filter.rspAll(aString, rspInner, uniq);
 	
-这样，一个简单的事件对象就封装好了。当然，EventEmitter对象的应用远不止如此，我会在后面的开发手记中提及的。  
-（完）
+这样，一个事件对象

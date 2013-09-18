@@ -1,0 +1,78 @@
+---
+layout: poslay
+title: TeamChat开发手记——3
+label: Node
+kind: 
+ptr: 
+mdmark: ran
+metakey:
+metades:
+---
+
+最近在做RTCA的第二阶段工程。从上周二到现今天，我花了一周的时间去重构其原型，并抛弃了原先的设计模式，重新考虑了架构、代码质量以及执行效率。这一过程很累，不过也算是对Node.js及其开发有了一个全新的认识和体会吧。
+
+当我决定重构时，心里已经对如何解决即将面临的困难有了把握，所以开始的异常迅速：构建了四个数据模型。经历了两次基于MVC模型的自由开发后，对MVC已经不再畏惧了，毫无疑问M（Model）是重中之重，所以先把Model设计好，也就是把核心问题——“数据操作”解决了。接下来是C（Controller）的设计。数据那部分都已经交给Model去做了，Controller的工作就是根据路由请求做出不同的响应。所谓的业务逻辑都应该在这里实现，难度倒是没什么，最多也就是设计几个小算法，不过让人头疼的是与Model的交互：Controller需要从Model那里获取需要的数据，因此Model必须提供一些对外操作的接口，但是过多的接口总会出现调用混乱或是返回混乱的情况，每每出错大多在接口调用这里。
+
+三天后除了Controller，Views也被我做好了，于是我便尝试运行了一下，几个入口程序中的错误排除之后，以为可以运行了，结果出现了以下一系列让我刻骨铭心的坑爹错误：
+
+1. 视图模板出现语法错误
+2. 数据库操作返回值的使用错误
+3. 编码错误
+4. 逻辑错误
+5. 理解异步上的失误
+6. 回调函数理解有误
+7. WebSocket的使用错误
+
+我大概分了这么几类，认为在今后的开发中值得关注。  
+之后就是不断地Debug，到处console.log()。谈到console对象，不得不说它的log是一个对我帮助极大的函数：基本上70%的Debug工作全是由他帮助完成的。不过这是后话，现在谈谈这几个bugs。  
+首先，玩非前端JavaScript一定要改变思维，不然会被Node中的各种异步与回调弄蒙圈的！其实Node的异步不是你想像的那样复杂，但也不是你随随便便就能理解的。  
+打个比方，假设有一个路由Router，它的作用是接收来自浏览器的post请求并以post来的数据查询并更新数据库,先看通常的想法：
+
+	//处理来自客户端的请求，这里name是表单提交的字符串，tags是由逗号分割的字符串。
+	var name = req.body.name,
+		tags = String.prototype.split(req.body.tags, /,|，/);
+		//需要将tags变成以逗号分割的数组
+		
+	//然后是数组中每个tag标签的标准化工作,假设处理函数为filter对象中的函数
+	var uniq = filter.uniq,//去除数组中重复的元素，返回这个数组
+		rspAll = filter.rspAll,//去除所有的空格元素，返回处理后的数组
+		rspInner = filter.rspInner;//去除每个元素中的空格，返回处理后的数组
+	
+	//处理标签，通常会这么做:
+	tags = rspAll(tags);
+	tags = rspInner(tags);
+	tags = uniq(tags);
+	
+	//然后是数据库的操作，调用User模型：
+	User.update({name: name}, $set: {tags: tags}, callback);
+	
+看似不错的方案，不过你认为这样可行么？别忘了Node平台常常标榜自己的特性之一：“并行执行”。  
+如果在数据操作之前添加一个`console.log(tags);`就会发现，其实tags并不像你想的那样处理的完美，而是基本没怎么改变。原因就是无阻塞操作：tags的赋值操作都是异步无阻塞的！上一个操作还没完就马上进行下一个操作。因此导致最后保存的tags并不理想，那该怎么办？
+
+	User.update({name: name}, $set: {tags: uniq(rspInner(rspAll(tags)));}, callback);
+	
+上面的操作带有阻塞性：只有内层函数执行完返回了结果外层函数才会执行，而tags的值为最外层函数的返回值。问题解决了吗？答案是不！的确，我们最后给tags的一定是过滤完整的tags，但遗憾的是上面这部操作仍是无阻塞的，也就是uniq()的执行是一瞬间的事，紧接着就是后面的数据库操作了，这时tags甚至还是最初的tags！那该怎么办？难道没有解决办法吗？当然是有的，只不过前提是你必须理解异步。
+	
+	rspAll(tags, function (arr) {
+		rspInner(arr, function (arr) {
+			uniq(arr, function (arr) {
+				User.update({name: name}, $set: {tags: tags}, callback);
+			});
+		});
+	});
+		 
+	
+层层回调，每次确保之前的返回值都准确传入下一个处理函数。用这种方式传入参数则会让数据库接收到真正的tags，而数据库相当于最后一个回调函数（除了自身的callback之外）。  
+那我们该如何实现这几个带有回调函数的filter函数呢？下面我们来实现他们：
+
+	function rspAll(items, callback) {
+		items.filter(function (item, index, items) {
+			if (item == 0 && !(/0/i).test(item))
+				return false;
+			else if (index === items.length - 1) {
+				callback();
+				return true;	
+			}			
+		});
+	}
+
