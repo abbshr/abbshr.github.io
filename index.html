@@ -5,7 +5,7 @@ metakey: Ran Aizen,网络技术,SouFii,Blog,JavaScript,Node.js,个人博客
 metades: Ran Aizen的个人博客，记录web和linux
 ---
 
-{% for post in site.posts limit:5 %}
+{% for post in site.posts limit:10 %}
 	<div class="block {{ forloop.index0 + 4 }}">
 		<h2 class="center"><a href="{{site.url}}{{post.url}}">{{ post.title }}</a></h2>
 		<p>{{ post.excerpt }}</p>
