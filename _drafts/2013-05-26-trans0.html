@@ -1,0 +1,169 @@
+---
+layout: poslay
+title: Google App Script技术文档：ScriptDb部分【上】【翻译】
+label: 技术文章
+kind: 
+mdmark: ran
+metakey:
+metades:
+---
+
+<tr>
+<td>
+<p class="lead">
+花了一天时间翻译的。。感谢google translate。。<br>
+这篇是‘Google App Script———Storing and Serving Data’主题下的‘ScriptDb’一文。<br>
+整个文章看完，觉得这个ScriptDb是个类‘NoSQL’数据库，看来Google还是挺赶潮流的嘛~~<br>
+原文翻译，尽量通俗，外加自己的一点理解。如翻译有误，欢迎指正~<br>
+</p>
+<img class="img-polaroid" src="{{site.url}}/source/postimg/googleappimg.jpg">
+<hr>
+<p>
+ScriptDb是谷歌为app script提供的一个JavaScript数据库，也同样是一个API，即在JavaScript代码中可以调用ScriptDb数据库，并实例化为一个JSON对象，每个数据块被储存为该对象的子对象，之后就可以对这个数据库对象进行各种数据操作，例如：数据的插入、删除、更新、查询、提取。<br>
+<strong>1.连接数据库（Access）</strong><br>
+通过<code>ScriptDb.getMyDb()</code>可以连接到数据库,即获取数据库的一个实例:
+<pre>
+var db = ScriptDb.getMyDb();
+</pre>
+注：当前执行的每个脚本都有一个自己的独立数据库，因此不必担心不同项目（Project）之间数据库有交集。<br>
+<strong>2.数据的插入（Insert）</strong><br>
+插入数据（或者说创建一个新的数据对象），可以通过<code>save()</code>方法：
+<pre>
+var dataobj = {
+	type: 'person',
+	person_id: 1,
+	name: {
+		firstname: 'Ran.Azien',
+		lastname: 'Sun'
+	},
+	age: 19,
+	address: {
+		state: 'Nan'gang',
+		street: 'Huang'he Road',
+		zip: 150000,
+		city: 'Harbin'
+	}
+};
+
+var stored = db.save(dataobj);
+</pre>
+由此可见每个数据块都是一个可以用JavaScript对象字面量表示法表示的对象（就是一些‘键-值’映射）。然后作为参数传递给db.save方法，该方法返回刚刚存储的数据对象。<br>
+注：属性名（key）不允许包含任何特殊字符，例如：‘.’或‘[]’，而（value）属性值没有限制。<br>
+<strong>3.数据的修改（Modifying）</strong><br>
+若要Modifying，我们首先要获取这个希望修改的数据对象。你可以通过调用db对象的load()、query()方法的返回值或者直接引用save()方法返回的对象来获取目的对象。<br>
+*先拿我们刚刚保存的对象来说：
+<pre>
+stored.foo = 'bar';
+db.save(stored);
+</pre>
+数据对象的修改正如JavaScript中对对象的操作那样简单。在修改过后再次执行save()方法就行了。<br>
+*也可以通过查询（query）来获取对象：
+<pre>
+var obj = db.query({age: 19}).next(); 
+//通过查找方法获取符合条件的对象集合，并调用next()方法取得集合中的第一个对象
+obj.type = 'college student'; 
+//修改目标对象的一个键值对
+db.save(obj);
+//保存修改后的对象
+</pre>
+*当然，如果你知道这个数据对象的id（这个id是数据库为每个数据对象自动分配的）的话，你也可以通过调用load()方法：
+<pre>
+var loaded = db.load(stored.getId());
+//可以用我们上面保存的对象的getId()方法来获取这个对象的id值
+//load()方法获取目标对象
+</pre>
+其中load方法的参数可以是个id数组，当你需要获取多个对象时，可以指定一个id数组传给load来指定多个对象，例如：
+<pre>
+var loaded = db.load([id_1, id_2, id_3]);
+</pre>
+<strong>4.数据的删除（Deleting）</strong><br>
+有两种删除数据对象的方式：
+<pre>
+db.remove(data_obj);
+//通过传入指定对象删除
+</pre>
+<pre>
+db.remove(obj_id);
+//通过传入对象的id删除
+</pre>
+<strong>5.批量操作（Bulk）</strong><br>
+如果你提前知道要对一批数据对象进行操作，ScriptDb允许你使用批量操作符.<br>
+*批量插入数据：<br>
+<pre>
+var saveResults = db.saveBatch(array_of_data_object, false);
+//返回一个数据对象数组
+</pre>
+这里面要解释如下 1.第二个参数：布尔类型。代表一个标志，如果为true，则表示所有对象都存储在一起；false表示这些对象分别单独储存。一般都用false。2.因为有对象存储失败的可能（虽然几率很小），因此返回的对象数组可能包含存储失败的对象。<br>
+这里有一个<code>db.allOk()</code>方法以供检查是否写入成功：
+<pre>
+if (db.allOk(saveResults)) {
+	//如果成功存储，则执行接下来的任务
+} else {
+	//如果有存储失败的
+	for (var i = 0; i < saveResults.length; i++) {
+		var item = saveResults[i];
+		if (typeof item.success =='function' && !item.success()) {
+			//对失败的对象进行处理
+		}
+	}
+}
+</pre>
+*批量删除数据<br>
+<pre>
+db.removeBatch(); 
+db.removeByIdBatch();
+</pre>
+批量删除数据和批量插入数据类似，在判断成功与否时都可以用：<br>
+<pre>
+ (typeof item.success) == 'function' && !item.success()
+</pre>
+<strong>6.数据的查询（Query）</strong><br>
+<pre>
+var results = db.query({name:{
+	firstname: 'RanAizen'
+}});
+//返回一个符合匹配条件的对象集合
+</pre>
+返回的对象集合有<code>next()</code>和<code>hasNext()</code>方法，可以通过他们来遍历整个集合中的对象。就像这样：
+<pre>
+while (results.hasNext()) {
+	var current = result.next();
+	//对每个对象的操作
+}
+</pre>
+还可以用返回对象集合的getSize()方法，将会返回集合中对象的数量。默认情况下，query()方法返回的对象集合的数量上限为200个。但你可以自定义这个限制（最大值为50000）<br>
+*query方法的参数为模式匹配。是一个对象字面量，包含你想要过滤的条件，其中的条件为‘逻辑与’的关系。
+当你需要匹配条件1或条件2时，可以用db对象的anyOf()方法，它是个模式匹配，其中的条件为‘逻辑或’的关系。例如：
+<pre>
+var results = db.query({
+	address: {
+		state: db.anyOf(['New York', 'Harbin'])
+	}
+	//数据库中任意值为New York或Harbin的对象
+});
+</pre>
+还有一个db对象的not()方法，它是使条件变为‘逻辑非’关系的模式匹配。例如：
+<pre>
+var result = db.query(name: db.not('lee'));
+//即查找所有name键值不为lee的所有对象
+</pre>
+*按范围查找匹配:<br>
+<pre>
+var re = db.query({
+	name: 'RanAizen',
+	age: db.greaterThan(15)
+	//匹配name值为RanAizen且age大于15的对象
+});
+</pre>
+同样，可以用如下其他方法来指定范围：
+<pre>
+greaterThanOrEqualTo(num);
+lessThan(num);
+lessThanOrEqualTo(num);
+between(num1, num2);
+</pre>
+db对象的范围匹配方法将会返回所指定匹配范围内的对象集合。<br><br><br>
+今天先写到这，该睡了。。剩下的明天完成。
+</p>
+</td>
+</tr>
