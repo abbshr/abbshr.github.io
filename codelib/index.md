@@ -5,7 +5,7 @@ metakey: code,SouFii,Blog,JavaScript,Node.js,个人博客,代码库
 metades: SouFii的代码库
 ---
 
-#####code in JavaScript
+codeing with JavaScript is fun!
 
 [BlogOS](http://abbshr.github.io/BlogOS)
 
