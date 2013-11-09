@@ -5,11 +5,11 @@ metakey: Ran Aizen,网络技术,SouFii,Blog,JavaScript,Node.js,个人博客
 metades: Ran Aizen的个人博客，记录web和linux
 ---
 
-{% for post in site.posts limit:5 %}
+{% for post in site.posts limit:10 %}
 	<div class="block {{ forloop.index0 + 4 }}">
 		<h2 class="center"><a href="{{site.url}}{{post.url}}">{{ post.title }}</a></h2>
 		<p>{{ post.excerpt }}</p>
 		<h3 class="center">日期:{{ post.date | date_to_long_string }}</h3>
-		<label class="center">{{ post.label }}</label>
+		<center><label>{{ post.label }}</label></center>
 	</div>
 {% endfor %}
