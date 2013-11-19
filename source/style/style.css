@@ -155,3 +155,9 @@ nav {
 .block[class$="8"]{background-color: #F2F2F2;}  .block[class$="8"] h2{color: #666;}  .block[class$="8"] p{color: #666;}
 .block[class$="9"]{background-color: #64ABEC;}  .block[class$="9"] h2{color: #06406c;}  .block[class$="9"] p{color: #000;}
 .block[class$="0"]{background-color: #fff8c9;}  .block[class$="0"] h2{color: #2d2700;}  .block[class$="0"] p{color: #615400;}
+
+.feedback {
+	margin: 0;
+	padding-right: 200px;
+  	padding-left: 200px;	
+}

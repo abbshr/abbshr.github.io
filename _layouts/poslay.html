@@ -37,6 +37,32 @@
 </ul>
 {% endif %}
 
+<div class="block feedback">
+	<style>
+	.ds-sort {
+	  display:none;
+	}
+	.ds-powered-by {
+		display:none;
+	}
+	.ds-sync {
+		display:none;
+	}
+	</style>
+	
+	<div class="ds-thread"></div>
+	<script type="text/javascript">
+		var duoshuoQuery = {short_name:"abbshr"};
+		(function() {
+			var ds = document.createElement('script');
+			ds.type = 'text/javascript';ds.async = true;
+			ds.src = 'http://static.duoshuo.com/embed.js';
+			ds.charset = 'UTF-8';
+			document.getElementsByTagName('body')[0].appendChild(ds);
+		})();
+	</script>
+</div>
+
 {% include footer.html %}
 </body>
 </html>
