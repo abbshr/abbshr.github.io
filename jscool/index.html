@@ -24,7 +24,7 @@ metades:
 {% for jscool in site.posts %}
 	{% if jscool.ptr == "JavaScript" %}
 	<div class="block {{ forloop.index0 }}">
-		<a href="{{site.url}}{{jscool.url}}"><h2 class="center">{{ jscool.title }}</h2></a>
+		<h2 class="center"><a href="{{site.url}}{{jscool.url}}">{{ jscool.title }}</a></h2>
 		<p>{{ jscool.excerpt }}</p>
 	</div>
 	{% endif %}
