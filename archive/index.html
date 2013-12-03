@@ -1,12 +1,11 @@
 ---
 layout: default
-title: 归档
+title: archive
 metakey: 网络技术,SouFii,Blog,JavaScript,Node.js,个人博客
 metades: SouFii的个人博客，记录web和linux
 ---
 
 <ul>
-  <li class="nav-header">全部文章</li>
 {% for post in site.posts %}
   <li class="active">
   	<a href="{{site.url}}{{post.url}}">{{ post.date | date_to_long_string }} » {{ post.title }}</a>

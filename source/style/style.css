@@ -1,8 +1,8 @@
 body {
-	background: #FFF;
-	font-size: 25px;
-	font-family: "Gibson", "Helvetica Neue", "Helvetica-Neue", helvetica, sans-serif;
-	border-top: 5px #d35c6f solid;
+    background: #FFF;
+    font-size: 20px;
+    font-family: "Gibson", "Helvetica Neue", "Helvetica-Neue", helvetica, sans-serif;
+    border-top: 5px #d35c6f solid;
     margin: 0;
     padding: 0;
 }
@@ -13,52 +13,52 @@ body {
 }
 
 h1 {
-	font-size: 70px;
-	font-weight: normal;
-	margin: 0;
+    font-size: 45px;
+    font-weight: normal;
+    margin: 0;
     font-family: "Gibson", "Helvetica Neue", "Helvetica-Neue", helvetica, sans-serif;
     color: #000;
-	line-height: 1;
-	padding-right: 200px;
-  	padding-left: 200px;
+    line-height: 1;
+    padding-right: 200px;
+    padding-left: 200px;
 }
 
 h2 {
-	font-size: 60px;
-	font-weight: normal;
-	margin: 0;
-	color: #d35c6f;
+    font-size: 40px;
+    font-weight: normal;
+    margin: 0;
+    color: #d35c6f;
     font-family: "Gibson", "Helvetica Neue", "Helvetica-Neue", helvetica, sans-serif;
     padding-right: 200px;
-  	padding-left: 200px;
+    padding-left: 200px;
 }
 
 h3 {
-	font-size: 40px;
-	font-weight: normal;
-	font-family: "Gibson", "Helvetica Neue", "Helvetica-Neue", helvetica, sans-serif;
-	margin: 0;
+    font-size: 35px;
+    font-weight: normal;
+    font-family: "Gibson", "Helvetica Neue", "Helvetica-Neue", helvetica, sans-serif;
+    margin: 0;
     margin-top: 40px;
     color: #d35c6f;
-	padding-right: 200px;
-  	padding-left: 200px;
+    padding-right: 200px;
+    padding-left: 200px;
 }
 
 h4 {
-	font-size: 30px;
-	font-weight: normal;
-	font-family: "Gibson", "Helvetica Neue", "Helvetica-Neue", helvetica, sans-serif;
-	margin: 0;
+    font-size: 30px;
+    font-weight: normal;
+    font-family: "Gibson", "Helvetica Neue", "Helvetica-Neue", helvetica, sans-serif;
+    margin: 0;
     margin-top: 40px;
     color: #d35c6f;
-	padding-right: 200px;
-  	padding-left: 200px;
+    padding-right: 200px;
+    padding-left: 200px;
 }
 
 p {
-	width: 960px;
-	margin: 40px auto;
-	color: #000;
+    width: 960px;
+    margin: 40px auto;
+    color: #000;
     line-height: 200%;
     font-family: "Gibson", "Helvetica Neue", "Helvetica-Neue", helvetica, sans-serif;
 }
@@ -85,34 +85,38 @@ p a {
 }
 
 ul {
-	list-style: none;
-	padding-right: 200px;
-  	padding-left: 200px;
+    list-style: none;
+    padding: 2% 20% 3% 20%;
 }
 
 ol {
-	padding-right: 200px;
-  	padding-left: 200px;
+    padding-right: 200px;
+    padding-left: 200px;
+}
+
+li {
+    font-size: 15px;
+    padding: 1%;
 }
 
 pre {
-	background-color: #46483e;
-	border-radius: 0px;
-	font-size: 18px;
-	color: #D8BABA;
+    background-color: #46483e;
+    border-radius: 0px;
+    font-size: 18px;
+    color: #D8BABA;
     padding: 5px 15px;
     font-family: consolas, monospace;
     padding-right: 20%;
-  	padding-left: 20%;
-  	overflow: auto;
+    padding-left: 20%;
+    overflow: auto;
 }
 
 blockquote {
-	width: 1000px;
-	margin: 10px auto;
-	background: #fff;
-	border: solid 2px #d35c6f;
-	padding: 0 40px;
+    width: 1000px;
+    margin: 10px auto;
+    background: #fff;
+    border: solid 2px #d35c6f;
+    padding: 0 40px;
 }
 
 code { 
@@ -122,25 +126,30 @@ code {
 }
 
 label {
-	background-color: #D8D8D8;
-	font-size: 13px;
+    background-color: #D8D8D8;
+    font-size: 13px;
     border-radius: 15px;
     color: #000;
     padding: 5px 15px;
 }
 
 nav {
-	color: #000;
+    padding: 3%;
+}
+
+nav a {
+    padding: 2%;
+    font-size: 5px;
 }
 
 .center {
-	text-align: center;
+    text-align: center;
 }
 
 .block {
-	position: relative;
-	margin: 0;
-	width: 100%;
+    position: relative;
+    margin: 0;
+    width: 100%;
     color: #000;
     padding-top: 80px;
     padding-bottom: 80px;
@@ -172,7 +181,7 @@ nav {
 }
 .block[class$="2"] p{color: #FFF}
 
-.block[class$="3"]{background-color: #FFF;}  	
+.block[class$="3"]{background-color: #FFF;}     
 .block[class$="3"] a{
     color: #000;
     transition:color 0.6s linear,text-shadow 0.6s linear;
@@ -277,6 +286,6 @@ nav {
 .block[class$="0"] p{color: #615400;}
 
 .feedback {
-	width: 960px;
-	margin: 40px auto;	
+    width: 960px;
+    margin: 40px auto;  
 }
