@@ -24,7 +24,7 @@ metades: Ran Aizen的个人博客，记录web和linux
 
     {% for page in (1..paginator.total_pages) %}
         {% if page != 1 %}
-            <a href="{{site.url}}/page{{paginator}}"> {{page}} </a>
+            <a href="{{site.url}}/page{{page}}"> {{page}} </a>
         {% else %}
             <a href="{{site.url}}">{{page}}</a>
         {% endif %}
