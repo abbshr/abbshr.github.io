@@ -1,3 +1,4 @@
 baseurl: /
 url: http://abbshr.github.io
 pygments: true
+paginate: 10
