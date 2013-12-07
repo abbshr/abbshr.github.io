@@ -146,6 +146,11 @@ nav a {
     text-align: center;
 }
 
+.pagenum a {
+    padding: 2%;
+    font-size: 17px;
+}
+
 .block {
     position: relative;
     margin: 0;

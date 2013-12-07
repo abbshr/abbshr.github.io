@@ -13,7 +13,7 @@ metades: Ran Aizen的个人博客，记录web和linux
 		<center><label>{{ post.label }}</label></center>
 	</div>
 {% endfor %}
-<div class="block">
+<div class="center pagenum block">
     {% if paginator.previous_page != nil %}
         {% if paginator.previous_page == 1 %}
             <a href="{{site.url}}/">Previous</a>
@@ -23,10 +23,32 @@ metades: Ran Aizen的个人博客，记录web和linux
     {% endif %}
 
     {% for page in (1..paginator.total_pages) %}
-        {% if page != 1 %}
-            <a href="{{site.url}}/page{{page}}"> {{page}} </a>
+        {% if paginator.total_pages - paginator.page <= 10 %}
+            {% if paginator.page - 1 <= 10 %}
+                {% if page != 1 %}
+                    <a href="{{site.url}}/page{{page}}"> {{page}} </a>
+                {% else %}
+                    <a href="{{site.url}}"> {{page}} </a>
+                {% endif %}
+            {% else %}
+                {% if page >= paginator.page - 10 %}
+                    <a href="{{site.url}}/page{{page}}"> {{page}} </a>
+                {% endif %}
+            {% endif %}
         {% else %}
-            <a href="{{site.url}}">{{page}}</a>
+            {% if page <= paginator.page + 10 %}
+                {% if paginator.page - 1 <= 10 %}
+                        {% if page != 1 %}
+                            <a href="{{site.url}}/page{{page}}"> {{page}} </a>
+                        {% else %}
+                            <a href="{{site.url}}"> {{page}} </a>
+                        {% endif %}
+                {% else %}
+                    {% if page >= paginator.page - 10 %}
+                        <a href="{{site.url}}/page{{page}}"> {{page}} </a>
+                    {% endif %}
+                {% endif %}
+            {% endif %}
         {% endif %}
     {% endfor %}
 
