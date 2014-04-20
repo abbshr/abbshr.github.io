@@ -1,0 +1,58 @@
+---
+layout: default
+title: Ran Aizen 2014
+metakey: Ran Aizen,网络技术,SouFii,Blog,JavaScript,Node.js,个人博客
+metades: Ran Aizen的个人博客，记录web和linux
+---
+
+{% for post in paginator.posts %}
+	<div class="block {{ forloop.index0 + 4 }}">
+		<h4 class="center"><a href="{{site.url}}{{post.url}}">{{ post.title }}</a></h4>
+		<p>{{ post.excerpt }}</p>
+		<h4 class="center">日期:{{ post.date | date_to_long_string }}</h4>
+		<center><label>{{ post.label }}</label></center>
+	</div>
+{% endfor %}
+<div class="center pagenum block">
+    {% if paginator.previous_page != nil %}
+        {% if paginator.previous_page == 1 %}
+            <a href="{{site.url}}/">Previous</a>
+        {% else %}
+            <a href="{{site.url}}/page{{paginator.previous_page}}">Previous</a>
+        {% endif %}
+    {% endif %}
+
+    {% for page in (1..paginator.total_pages) %}
+        {% if paginator.total_pages - paginator.page <= 10 %}
+            {% if paginator.page - 1 <= 10 %}
+                {% if page != 1 %}
+                    <a href="{{site.url}}/page{{page}}"> {{page}} </a>
+                {% else %}
+                    <a href="{{site.url}}"> {{page}} </a>
+                {% endif %}
+            {% else %}
+                {% if page >= paginator.page - 10 %}
+                    <a href="{{site.url}}/page{{page}}"> {{page}} </a>
+                {% endif %}
+            {% endif %}
+        {% else %}
+            {% if page <= paginator.page + 10 %}
+                {% if paginator.page - 1 <= 10 %}
+                        {% if page != 1 %}
+                            <a href="{{site.url}}/page{{page}}"> {{page}} </a>
+                        {% else %}
+                            <a href="{{site.url}}"> {{page}} </a>
+                        {% endif %}
+                {% else %}
+                    {% if page >= paginator.page - 10 %}
+                        <a href="{{site.url}}/page{{page}}"> {{page}} </a>
+                    {% endif %}
+                {% endif %}
+            {% endif %}
+        {% endif %}
+    {% endfor %}
+
+    {% if paginator.next_page != nil %}
+        <a href="{{site.url}}/page{{paginator.next_page}}">Next</a>
+    {% endif %}
+</div>
