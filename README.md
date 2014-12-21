@@ -1,3 +1,3 @@
-Ran Blog
+Ran's Blog - about tech, thoughts & hack
 ---
-SouFii's Personal Blog, about web and linux
+http://digitpie.cf
