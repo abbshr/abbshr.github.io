@@ -6,9 +6,461 @@ Timers：
 https://github.com/nodejs/node/blob/master/lib/timers.js
 https://github.com/nodejs/node/blob/master/src/timer_wrap.cc
 
+```js
+exports.setImmediate = function(callback, arg1, arg2, arg3) {
+  var i, args;
+  var len = arguments.length;
+  var immediate = new Immediate();
+
+  L.init(immediate);
+
+  switch (len) {
+    // fast cases
+    case 0:
+    case 1:
+      immediate._onImmediate = callback;
+      break;
+    case 2:
+      immediate._onImmediate = function() {
+        callback.call(immediate, arg1);
+      };
+      break;
+    case 3:
+      immediate._onImmediate = function() {
+        callback.call(immediate, arg1, arg2);
+      };
+      break;
+    case 4:
+      immediate._onImmediate = function() {
+        callback.call(immediate, arg1, arg2, arg3);
+      };
+      break;
+    // slow case
+    default:
+      args = new Array(len - 1);
+      for (i = 1; i < len; i++)
+        args[i - 1] = arguments[i];
+
+      immediate._onImmediate = function() {
+        callback.apply(immediate, args);
+      };
+      break;
+  }
+
+  if (!process._needImmediateCallback) {
+    process._needImmediateCallback = true;
+    process._immediateCallback = processImmediate;
+  }
+
+  if (process.domain)
+    immediate.domain = process.domain;
+
+  L.append(immediateQueue, immediate);
+
+  return immediate;
+};
+```
+
+```cpp
+Environment* CreateEnvironment(Isolate* isolate,
+                               uv_loop_t* loop,
+                               Handle<Context> context,
+                               int argc,
+                               const char* const* argv,
+                               int exec_argc,
+                               const char* const* exec_argv) {
+  HandleScope handle_scope(isolate);
+
+  Context::Scope context_scope(context);
+  Environment* env = Environment::New(context, loop);
+
+  isolate->SetAutorunMicrotasks(false);
+
+  uv_check_init(env->event_loop(), env->immediate_check_handle());
+  uv_unref(
+      reinterpret_cast<uv_handle_t*>(env->immediate_check_handle()));
+
+  uv_idle_init(env->event_loop(), env->immediate_idle_handle());
+```
+
+```cpp
+static void CheckImmediate(uv_check_t* handle) {
+  Environment* env = Environment::from_immediate_check_handle(handle);
+  HandleScope scope(env->isolate());
+  Context::Scope context_scope(env->context());
+  MakeCallback(env, env->process_object(), env->immediate_callback_string());
+}
+```
+
+```cpp
+void NeedImmediateCallbackGetter(Local<String> property,
+                                 const PropertyCallbackInfo<Value>& info) {
+  Environment* env = Environment::GetCurrent(info);
+  const uv_check_t* immediate_check_handle = env->immediate_check_handle();
+  bool active = uv_is_active(
+      reinterpret_cast<const uv_handle_t*>(immediate_check_handle));
+  info.GetReturnValue().Set(active);
+}
+
+
+static void NeedImmediateCallbackSetter(
+    Local<String> property,
+    Local<Value> value,
+    const PropertyCallbackInfo<void>& info) {
+  Environment* env = Environment::GetCurrent(info);
+
+  uv_check_t* immediate_check_handle = env->immediate_check_handle();
+  bool active = uv_is_active(
+      reinterpret_cast<const uv_handle_t*>(immediate_check_handle));
+
+  if (active == value->BooleanValue())
+    return;
+
+  uv_idle_t* immediate_idle_handle = env->immediate_idle_handle();
+
+  if (active) {
+    uv_check_stop(immediate_check_handle);
+    uv_idle_stop(immediate_idle_handle);
+  } else {
+    uv_check_start(immediate_check_handle, CheckImmediate);
+    // Idle handle is needed only to stop the event loop from blocking in poll.
+    uv_idle_start(immediate_idle_handle, IdleImmediateDummy);
+  }
+}
+```
+
 nextTick：
 https://github.com/nodejs/node/blob/master/src/node.js
 
+```js
+startup.processNextTick = function() {
+    var nextTickQueue = [];
+    var pendingUnhandledRejections = [];
+    var microtasksScheduled = false;
+
+    // Used to run V8's micro task queue.
+    var _runMicrotasks = {};
+
+    // *Must* match Environment::TickInfo::Fields in src/env.h.
+    var kIndex = 0;
+    var kLength = 1;
+
+    process.nextTick = nextTick;
+    // Needs to be accessible from beyond this scope.
+    process._tickCallback = _tickCallback;
+    process._tickDomainCallback = _tickDomainCallback;
+
+    // This tickInfo thing is used so that the C++ code in src/node.cc
+    // can have easy access to our nextTick state, and avoid unnecessary
+    // calls into JS land.
+    const tickInfo = process._setupNextTick(_tickCallback, _runMicrotasks);
+
+    _runMicrotasks = _runMicrotasks.runMicrotasks;
+
+    function tickDone() {
+      if (tickInfo[kLength] !== 0) {
+        if (tickInfo[kLength] <= tickInfo[kIndex]) {
+          nextTickQueue = [];
+          tickInfo[kLength] = 0;
+        } else {
+          nextTickQueue.splice(0, tickInfo[kIndex]);
+          tickInfo[kLength] = nextTickQueue.length;
+        }
+      }
+      tickInfo[kIndex] = 0;
+    }
+
+    function scheduleMicrotasks() {
+      if (microtasksScheduled)
+        return;
+
+      nextTickQueue.push({
+        callback: runMicrotasksCallback,
+        domain: null
+      });
+
+      tickInfo[kLength]++;
+      microtasksScheduled = true;
+    }
+
+    function runMicrotasksCallback() {
+      microtasksScheduled = false;
+      _runMicrotasks();
+
+      if (tickInfo[kIndex] < tickInfo[kLength] ||
+          emitPendingUnhandledRejections())
+        scheduleMicrotasks();
+    }
+
+    // Run callbacks that have no domain.
+    // Using domains will cause this to be overridden.
+    function _tickCallback() {
+      var callback, args, tock;
+
+      do {
+        while (tickInfo[kIndex] < tickInfo[kLength]) {
+          tock = nextTickQueue[tickInfo[kIndex]++];
+          callback = tock.callback;
+          args = tock.args;
+          // Using separate callback execution functions helps to limit the
+          // scope of DEOPTs caused by using try blocks and allows direct
+          // callback invocation with small numbers of arguments to avoid the
+          // performance hit associated with using `fn.apply()`
+          if (args === undefined) {
+            doNTCallback0(callback);
+          } else {
+            switch (args.length) {
+              case 1:
+                doNTCallback1(callback, args[0]);
+                break;
+              case 2:
+                doNTCallback2(callback, args[0], args[1]);
+                break;
+              case 3:
+                doNTCallback3(callback, args[0], args[1], args[2]);
+                break;
+              default:
+                doNTCallbackMany(callback, args);
+            }
+          }
+          if (1e4 < tickInfo[kIndex])
+            tickDone();
+        }
+        tickDone();
+        _runMicrotasks();
+        emitPendingUnhandledRejections();
+      } while (tickInfo[kLength] !== 0);
+    }
+
+    function _tickDomainCallback() {
+      var callback, domain, args, tock;
+
+      do {
+        while (tickInfo[kIndex] < tickInfo[kLength]) {
+          tock = nextTickQueue[tickInfo[kIndex]++];
+          callback = tock.callback;
+          domain = tock.domain;
+          args = tock.args;
+          if (domain)
+            domain.enter();
+          // Using separate callback execution functions helps to limit the
+          // scope of DEOPTs caused by using try blocks and allows direct
+          // callback invocation with small numbers of arguments to avoid the
+          // performance hit associated with using `fn.apply()`
+          if (args === undefined) {
+            doNTCallback0(callback);
+          } else {
+            switch (args.length) {
+              case 1:
+                doNTCallback1(callback, args[0]);
+                break;
+              case 2:
+                doNTCallback2(callback, args[0], args[1]);
+                break;
+              case 3:
+                doNTCallback3(callback, args[0], args[1], args[2]);
+                break;
+              default:
+                doNTCallbackMany(callback, args);
+            }
+          }
+          if (1e4 < tickInfo[kIndex])
+            tickDone();
+          if (domain)
+            domain.exit();
+        }
+        tickDone();
+        _runMicrotasks();
+        emitPendingUnhandledRejections();
+      } while (tickInfo[kLength] !== 0);
+    }
+
+    function doNTCallback0(callback) {
+      var threw = true;
+      try {
+        callback();
+        threw = false;
+      } finally {
+        if (threw)
+          tickDone();
+      }
+    }
+
+    function doNTCallback1(callback, arg1) {
+      var threw = true;
+      try {
+        callback(arg1);
+        threw = false;
+      } finally {
+        if (threw)
+          tickDone();
+      }
+    }
+
+    function doNTCallback2(callback, arg1, arg2) {
+      var threw = true;
+      try {
+        callback(arg1, arg2);
+        threw = false;
+      } finally {
+        if (threw)
+          tickDone();
+      }
+    }
+
+    function doNTCallback3(callback, arg1, arg2, arg3) {
+      var threw = true;
+      try {
+        callback(arg1, arg2, arg3);
+        threw = false;
+      } finally {
+        if (threw)
+          tickDone();
+      }
+    }
+
+    function doNTCallbackMany(callback, args) {
+      var threw = true;
+      try {
+        callback.apply(null, args);
+        threw = false;
+      } finally {
+        if (threw)
+          tickDone();
+      }
+    }
+
+    function TickObject(c, args) {
+      this.callback = c;
+      this.domain = process.domain || null;
+      this.args = args;
+    }
+
+    function nextTick(callback) {
+      // on the way out, don't bother. it won't get fired anyway.
+      if (process._exiting)
+        return;
+
+      var args;
+      if (arguments.length > 1) {
+        args = [];
+        for (var i = 1; i < arguments.length; i++)
+          args.push(arguments[i]);
+      }
+
+      nextTickQueue.push(new TickObject(callback, args));
+      tickInfo[kLength]++;
+    }
+
+    function emitPendingUnhandledRejections() {
+      var hadListeners = false;
+      while (pendingUnhandledRejections.length > 0) {
+        var promise = pendingUnhandledRejections.shift();
+        var reason = pendingUnhandledRejections.shift();
+        if (hasBeenNotifiedProperty.get(promise) === false) {
+          hasBeenNotifiedProperty.set(promise, true);
+          if (!process.emit('unhandledRejection', reason, promise)) {
+            // Nobody is listening.
+            // TODO(petkaantonov) Take some default action, see #830
+          } else {
+            hadListeners = true;
+          }
+        }
+      }
+      return hadListeners;
+    }
+
+    addPendingUnhandledRejection = function(promise, reason) {
+      pendingUnhandledRejections.push(promise, reason);
+      scheduleMicrotasks();
+    };
+  };
+```
+
+```cpp
+void SetupNextTick(const FunctionCallbackInfo<Value>& args) {
+  Environment* env = Environment::GetCurrent(args);
+
+  CHECK(args[0]->IsFunction());
+  CHECK(args[1]->IsObject());
+
+  env->set_tick_callback_function(args[0].As<Function>());
+
+  env->SetMethod(args[1].As<Object>(), "runMicrotasks", RunMicrotasks);
+
+  // Do a little housekeeping.
+  env->process_object()->Delete(
+      FIXED_ONE_BYTE_STRING(args.GetIsolate(), "_setupNextTick"));
+
+  // Values use to cross communicate with processNextTick.
+  uint32_t* const fields = env->tick_info()->fields();
+  uint32_t const fields_count = env->tick_info()->fields_count();
+
+  Local<ArrayBuffer> array_buffer =
+      ArrayBuffer::New(env->isolate(), fields, sizeof(*fields) * fields_count);
+
+  args.GetReturnValue().Set(Uint32Array::New(array_buffer, 0, fields_count));
+}
+```
+
+https://github.com/nodejs/node-v0.x-archive/issues/6034
+https://github.com/nodejs/node-v0.x-archive/issues/5943
+
+process.nextTick的表现:
+
+```js
+function cb(arg) {
+  return function() {
+    console.log(arg);
+    process.nextTick(function() {
+      console.log('nextTick - ' + arg);
+    });
+  }
+}
+
+cb('0')();
+setImmediate(cb('1'));
+setImmediate(cb('2'));
+```
+
+setImmediate的表现:
+
+```js
+setImmediate(function() { console.log('setImmediate'); });
+setTimeout(function() { console.log('setTimeout'); }, 0);
+process.nextTick(function() { console.log('nextTick'); });
+```
+
+```js
+setTimeout(function() {
+  setTimeout(function() {
+    console.log('setTimeout')
+  }, 0);
+  setImmediate(function() {
+    console.log('setImmediate')
+  });
+}, 10);
+```
+
+```js
+setTimeout(function() {
+  process.nextTick(function () {
+	console.log('nextTick');
+  });
+  setTimeout(function() {
+    console.log('setTimeout')
+  }, 0);
+  setImmediate(function() {
+    console.log('setImmediate')
+  });
+}, 10);
+```
+
+
+# Chapter 1.5: macroTask & microTask
+
+https://html.spec.whatwg.org/multipage/webappapis.html#event-loops
+https://jakearchibald.com/2015/tasks-microtasks-queues-and-schedules/
 
 # Chapter 2：Be Careful！
 
@@ -60,6 +512,7 @@ console.log diff / i
 在浏览器里, js和UI渲染是互斥的线程, 一旦执行点耗时的逻辑, 页面渲染就卡住了, 必须要等到js跑完. 而这种设计是为了保证交互上逻辑正确性: js触发的UI重绘一定要等到js执行完, 一旦js线程与UI线程并行执行可能导致不可预期的后果.
 
 ### 事件循环
+https://html.spec.whatwg.org/multipage/webappapis.html#event-loops
 无论是Node环境还是浏览器环境, 都存在这么个事件循环, 每次循环被称作一个**Tick**, 跑在主线程里, 当代码都执行完之后, 会去异步事件队列取任务执行, 并且每次取一个.
 
 # Chapter 4: 同步事件与异步事件
