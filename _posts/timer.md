@@ -1,10 +1,35 @@
-[提纲] - 深度剖析JavaScript原生异步函数
+[提纲] - 深度剖析JavaScript异步函数
 
-# Chapter 1：Timer与process.nextTick的内部实现
+# Chapter 1：Node.js环境下的异步函数
 
-Timers：
-https://github.com/nodejs/node/blob/master/lib/timers.js
-https://github.com/nodejs/node/blob/master/src/timer_wrap.cc
+## Timer
+
+Node对两个Timer的超时时间做了个小trick, 任何大于`TIMEOUT_MAX`小于1ms的超时都被视为1ms.
+
+`setTimeout`和`setInterval`在Node下的封装基本上一样, 这里单拿前者举例.
+
+```js
+exports.setTimeout = function(callback, after) {
+  after *= 1; // coalesce to number or NaN
+  // 保证setTimeout永远会延时执行
+  if (!(after >= 1 && after <= TIMEOUT_MAX)) {
+    after = 1; // schedule on next tick, follows browser behaviour
+  }
+  // ...
+  var ontimeout = callback;
+  timer._onTimeout = ontimeout;
+  // ...
+  exports.active(timer);
+
+  return timer;
+};
+```
+
+## setImmediate
+
+官方文档对`setImmediate`并不准确, 基本上让所有没读过源码(包括读得不仔细)的人对其产生极大误解.
+
+主要来自`setImmediate`和`setTimeout(0)`谁先谁后的问题,
 
 ```js
 exports.setImmediate = function(callback, arg1, arg2, arg3) {
@@ -13,345 +38,104 @@ exports.setImmediate = function(callback, arg1, arg2, arg3) {
   var immediate = new Immediate();
 
   L.init(immediate);
-
-  switch (len) {
-    // fast cases
-    case 0:
-    case 1:
-      immediate._onImmediate = callback;
-      break;
-    case 2:
-      immediate._onImmediate = function() {
-        callback.call(immediate, arg1);
-      };
-      break;
-    case 3:
-      immediate._onImmediate = function() {
-        callback.call(immediate, arg1, arg2);
-      };
-      break;
-    case 4:
-      immediate._onImmediate = function() {
-        callback.call(immediate, arg1, arg2, arg3);
-      };
-      break;
-    // slow case
-    default:
-      args = new Array(len - 1);
-      for (i = 1; i < len; i++)
-        args[i - 1] = arguments[i];
-
-      immediate._onImmediate = function() {
-        callback.apply(immediate, args);
-      };
-      break;
-  }
-
+  // ...
+  // 这里是setImmediate能执行的关键, c++作用域里会检查`_needImmediateCallback`
+  // c++那部分代码太长我就不贴了, 全在src/node.cc里, 自己去看.
   if (!process._needImmediateCallback) {
     process._needImmediateCallback = true;
     process._immediateCallback = processImmediate;
   }
-
-  if (process.domain)
-    immediate.domain = process.domain;
-
-  L.append(immediateQueue, immediate);
-
+  // ...
   return immediate;
 };
 ```
 
-```cpp
-Environment* CreateEnvironment(Isolate* isolate,
-                               uv_loop_t* loop,
-                               Handle<Context> context,
-                               int argc,
-                               const char* const* argv,
-                               int exec_argc,
-                               const char* const* exec_argv) {
-  HandleScope handle_scope(isolate);
+## process.nextTick
 
-  Context::Scope context_scope(context);
-  Environment* env = Environment::New(context, loop);
+这个在异步函数里优先级最高大家都知道, 属于`idle`观察者也清. 代码在`src/node.js`里实现.
 
-  isolate->SetAutorunMicrotasks(false);
+代码很长, 不多说, 所有`process.nextTick`堆积的任务都会在事件循环的next tick(后面讲)里一口气执行.
 
-  uv_check_init(env->event_loop(), env->immediate_check_handle());
-  uv_unref(
-      reinterpret_cast<uv_handle_t*>(env->immediate_check_handle()));
-
-  uv_idle_init(env->event_loop(), env->immediate_idle_handle());
-```
-
-```cpp
-static void CheckImmediate(uv_check_t* handle) {
-  Environment* env = Environment::from_immediate_check_handle(handle);
-  HandleScope scope(env->isolate());
-  Context::Scope context_scope(env->context());
-  MakeCallback(env, env->process_object(), env->immediate_callback_string());
-}
-```
-
-```cpp
-void NeedImmediateCallbackGetter(Local<String> property,
-                                 const PropertyCallbackInfo<Value>& info) {
-  Environment* env = Environment::GetCurrent(info);
-  const uv_check_t* immediate_check_handle = env->immediate_check_handle();
-  bool active = uv_is_active(
-      reinterpret_cast<const uv_handle_t*>(immediate_check_handle));
-  info.GetReturnValue().Set(active);
-}
-
-
-static void NeedImmediateCallbackSetter(
-    Local<String> property,
-    Local<Value> value,
-    const PropertyCallbackInfo<void>& info) {
-  Environment* env = Environment::GetCurrent(info);
-
-  uv_check_t* immediate_check_handle = env->immediate_check_handle();
-  bool active = uv_is_active(
-      reinterpret_cast<const uv_handle_t*>(immediate_check_handle));
-
-  if (active == value->BooleanValue())
-    return;
-
-  uv_idle_t* immediate_idle_handle = env->immediate_idle_handle();
-
-  if (active) {
-    uv_check_stop(immediate_check_handle);
-    uv_idle_stop(immediate_idle_handle);
-  } else {
-    uv_check_start(immediate_check_handle, CheckImmediate);
-    // Idle handle is needed only to stop the event loop from blocking in poll.
-    uv_idle_start(immediate_idle_handle, IdleImmediateDummy);
-  }
-}
-```
-
-nextTick：
-https://github.com/nodejs/node/blob/master/src/node.js
+这里还有一个重点: `_tickCallback`函数是`idle`观察者在next tick里的主回调函数:
 
 ```js
+function _tickCallback() {
+  var callback, args, tock;
+
+  do {
+    while (tickInfo[kIndex] < tickInfo[kLength]) {
+      tock = nextTickQueue[tickInfo[kIndex]++];
+      callback = tock.callback;
+      args = tock.args;
+      // Using separate callback execution functions helps to limit the
+      // scope of DEOPTs caused by using try blocks and allows direct
+      // callback invocation with small numbers of arguments to avoid the
+      // performance hit associated with using `fn.apply()`
+      if (args === undefined) {
+        doNTCallback0(callback);
+      } else {
+        switch (args.length) {
+          case 1:
+            doNTCallback1(callback, args[0]);
+            break;
+          case 2:
+            doNTCallback2(callback, args[0], args[1]);
+            break;
+          case 3:
+            doNTCallback3(callback, args[0], args[1], args[2]);
+            break;
+          default:
+            doNTCallbackMany(callback, args);
+        }
+      }
+      if (1e4 < tickInfo[kIndex])
+        tickDone();
+    }
+    tickDone();
+    _runMicrotasks();
+    emitPendingUnhandledRejections();
+  } while (tickInfo[kLength] !== 0);
+}
+```
+
+当整个队列清空后, 继续向下执行`_runMicrotasks`, **Microtask是什么?**,
+我们暂且不理会它, 先来看与其相关的代码:
+
+```js
+function scheduleMicrotasks() {
+  if (microtasksScheduled)
+    return;
+
+  nextTickQueue.push({
+    callback: runMicrotasksCallback,
+    domain: null
+  });
+
+  tickInfo[kLength]++;
+  microtasksScheduled = true;
+}
+
+function runMicrotasksCallback() {
+  microtasksScheduled = false;
+  _runMicrotasks();
+
+  if (tickInfo[kIndex] < tickInfo[kLength] ||
+      emitPendingUnhandledRejections())
+    scheduleMicrotasks();
+}
+```
+
+注意到microtask在调度时跟process.nextTick的行为差不多, 也是将任务压到`nextTickQueue`里, 然后在next tick里一次性处理掉.
+
+process.nextTick初始化过程的其他部分代码:
+```js
 startup.processNextTick = function() {
+    // 保存nextTick任务的队列
     var nextTickQueue = [];
     var pendingUnhandledRejections = [];
     var microtasksScheduled = false;
 
-    // Used to run V8's micro task queue.
-    var _runMicrotasks = {};
-
-    // *Must* match Environment::TickInfo::Fields in src/env.h.
-    var kIndex = 0;
-    var kLength = 1;
-
-    process.nextTick = nextTick;
-    // Needs to be accessible from beyond this scope.
-    process._tickCallback = _tickCallback;
-    process._tickDomainCallback = _tickDomainCallback;
-
-    // This tickInfo thing is used so that the C++ code in src/node.cc
-    // can have easy access to our nextTick state, and avoid unnecessary
-    // calls into JS land.
-    const tickInfo = process._setupNextTick(_tickCallback, _runMicrotasks);
-
-    _runMicrotasks = _runMicrotasks.runMicrotasks;
-
-    function tickDone() {
-      if (tickInfo[kLength] !== 0) {
-        if (tickInfo[kLength] <= tickInfo[kIndex]) {
-          nextTickQueue = [];
-          tickInfo[kLength] = 0;
-        } else {
-          nextTickQueue.splice(0, tickInfo[kIndex]);
-          tickInfo[kLength] = nextTickQueue.length;
-        }
-      }
-      tickInfo[kIndex] = 0;
-    }
-
-    function scheduleMicrotasks() {
-      if (microtasksScheduled)
-        return;
-
-      nextTickQueue.push({
-        callback: runMicrotasksCallback,
-        domain: null
-      });
-
-      tickInfo[kLength]++;
-      microtasksScheduled = true;
-    }
-
-    function runMicrotasksCallback() {
-      microtasksScheduled = false;
-      _runMicrotasks();
-
-      if (tickInfo[kIndex] < tickInfo[kLength] ||
-          emitPendingUnhandledRejections())
-        scheduleMicrotasks();
-    }
-
-    // Run callbacks that have no domain.
-    // Using domains will cause this to be overridden.
-    function _tickCallback() {
-      var callback, args, tock;
-
-      do {
-        while (tickInfo[kIndex] < tickInfo[kLength]) {
-          tock = nextTickQueue[tickInfo[kIndex]++];
-          callback = tock.callback;
-          args = tock.args;
-          // Using separate callback execution functions helps to limit the
-          // scope of DEOPTs caused by using try blocks and allows direct
-          // callback invocation with small numbers of arguments to avoid the
-          // performance hit associated with using `fn.apply()`
-          if (args === undefined) {
-            doNTCallback0(callback);
-          } else {
-            switch (args.length) {
-              case 1:
-                doNTCallback1(callback, args[0]);
-                break;
-              case 2:
-                doNTCallback2(callback, args[0], args[1]);
-                break;
-              case 3:
-                doNTCallback3(callback, args[0], args[1], args[2]);
-                break;
-              default:
-                doNTCallbackMany(callback, args);
-            }
-          }
-          if (1e4 < tickInfo[kIndex])
-            tickDone();
-        }
-        tickDone();
-        _runMicrotasks();
-        emitPendingUnhandledRejections();
-      } while (tickInfo[kLength] !== 0);
-    }
-
-    function _tickDomainCallback() {
-      var callback, domain, args, tock;
-
-      do {
-        while (tickInfo[kIndex] < tickInfo[kLength]) {
-          tock = nextTickQueue[tickInfo[kIndex]++];
-          callback = tock.callback;
-          domain = tock.domain;
-          args = tock.args;
-          if (domain)
-            domain.enter();
-          // Using separate callback execution functions helps to limit the
-          // scope of DEOPTs caused by using try blocks and allows direct
-          // callback invocation with small numbers of arguments to avoid the
-          // performance hit associated with using `fn.apply()`
-          if (args === undefined) {
-            doNTCallback0(callback);
-          } else {
-            switch (args.length) {
-              case 1:
-                doNTCallback1(callback, args[0]);
-                break;
-              case 2:
-                doNTCallback2(callback, args[0], args[1]);
-                break;
-              case 3:
-                doNTCallback3(callback, args[0], args[1], args[2]);
-                break;
-              default:
-                doNTCallbackMany(callback, args);
-            }
-          }
-          if (1e4 < tickInfo[kIndex])
-            tickDone();
-          if (domain)
-            domain.exit();
-        }
-        tickDone();
-        _runMicrotasks();
-        emitPendingUnhandledRejections();
-      } while (tickInfo[kLength] !== 0);
-    }
-
-    function doNTCallback0(callback) {
-      var threw = true;
-      try {
-        callback();
-        threw = false;
-      } finally {
-        if (threw)
-          tickDone();
-      }
-    }
-
-    function doNTCallback1(callback, arg1) {
-      var threw = true;
-      try {
-        callback(arg1);
-        threw = false;
-      } finally {
-        if (threw)
-          tickDone();
-      }
-    }
-
-    function doNTCallback2(callback, arg1, arg2) {
-      var threw = true;
-      try {
-        callback(arg1, arg2);
-        threw = false;
-      } finally {
-        if (threw)
-          tickDone();
-      }
-    }
-
-    function doNTCallback3(callback, arg1, arg2, arg3) {
-      var threw = true;
-      try {
-        callback(arg1, arg2, arg3);
-        threw = false;
-      } finally {
-        if (threw)
-          tickDone();
-      }
-    }
-
-    function doNTCallbackMany(callback, args) {
-      var threw = true;
-      try {
-        callback.apply(null, args);
-        threw = false;
-      } finally {
-        if (threw)
-          tickDone();
-      }
-    }
-
-    function TickObject(c, args) {
-      this.callback = c;
-      this.domain = process.domain || null;
-      this.args = args;
-    }
-
-    function nextTick(callback) {
-      // on the way out, don't bother. it won't get fired anyway.
-      if (process._exiting)
-        return;
-
-      var args;
-      if (arguments.length > 1) {
-        args = [];
-        for (var i = 1; i < arguments.length; i++)
-          args.push(arguments[i]);
-      }
-
-      nextTickQueue.push(new TickObject(callback, args));
-      tickInfo[kLength]++;
-    }
-
+    // ...
     function emitPendingUnhandledRejections() {
       var hadListeners = false;
       while (pendingUnhandledRejections.length > 0) {
@@ -377,90 +161,181 @@ startup.processNextTick = function() {
   };
 ```
 
+## 执行顺序?
+
+上面三个是Node下很常用的用来实现异步函数的工具, 可惜官网并没有对他们的差别给出易懂的解释(我猜测原因是他们默认你充分了解event loop并且熟读libuv源码...).
+
+好了, 这里必须要说的一个例子:
+
+`setImmediate`的表现在新旧版本中的差异:
+
+```coffee
+setImmediate ->
+  console.log 'immediate-1'
+  process.nextTick ->
+    console.log 'nextTick-1'
+
+setImmediate ->
+  console.log 'immediate-2'
+  process.nextTick ->
+    console.log 'nextTick-2'
+```
+
+我在Node-v0.11.14中的测试结果符合以往的认知:
+
+```coffee
+# immediate-1
+# nextTick-1
+# immediate-2
+# nextTick-2
+```
+
+按照正常的认知, 因为`process.nextTick`属于idle, 而`setImmediate`属于check, 它积压的任务在每个tick里执行一个.
+所以setImmediate的第一个任务执行完后并不会接着执行第二个任务, 而是进入next tick, 执行process.nextTick的任务.
+
+然而在iojs-v3.2中出现了颠覆世界观的一幕:
+
+```coffee
+# immediate-1
+# immediate-2
+# nextTick-1
+# nextTick-2
+```
+
+输出结果很让人惊讶, 这种情况应该是setImmediate和process.nextTick一样把所有任务在next tick里一气呵成了.
+不过并没有见官方文档做出改动, 也没给出合理解释.
+
+## Node context event loop
+
+这里要举另外一个例子, setImmediate和setTimeout的表现.
+
+```js
+setImmediate(function() { console.log('immediate'); });
+setTimeout(function() { console.log('timeout'); }, 0);
+```
+哪个先打印出来? 'immediate'? 'timeout'? 可以尝试一下, 实际结果可能是这样的:
+
+```coffee
+# 第N次尝试 =>
+# timeout
+# immediate
+
+# ...
+
+# 第M次尝试 =>
+# immediate
+# timeout
+```
+
+如果`process.nextTick`乱入:
+
+```coffee
+process.nextTick ->
+  console.log 'nexttick'
+setImmediate ->
+  console.log 'immediate'
+setTimeout ->
+  console.log 'timeout'
+```
+
+结果又是另一番景象:
+
+```coffee
+# nexttick
+# timeout
+# immediate
+```
+
+先从解释第一种情况. 在libuv的event loop代码中有这么一段核心代码. 上面没少提到next tick, event loop的每一次loop被称作一个tick:
+
 ```cpp
-void SetupNextTick(const FunctionCallbackInfo<Value>& args) {
-  Environment* env = Environment::GetCurrent(args);
+while (r != 0 && loop->stop_flag == 0) {
+    // tick开始时更新当前时间
+    uv__update_time(loop);
+    // 1. 执行超时的计时器任务
+    uv__run_timers(loop);
+    // 2. 执行上次推迟执行的I/O回调函数
+    ran_pending = uv__run_pending(loop);
+    // 3. 执行idle任务
+    uv__run_idle(loop);
+    // 4. 执行prepare任务
+    uv__run_prepare(loop);
 
-  CHECK(args[0]->IsFunction());
-  CHECK(args[1]->IsObject());
-
-  env->set_tick_callback_function(args[0].As<Function>());
-
-  env->SetMethod(args[1].As<Object>(), "runMicrotasks", RunMicrotasks);
-
-  // Do a little housekeeping.
-  env->process_object()->Delete(
-      FIXED_ONE_BYTE_STRING(args.GetIsolate(), "_setupNextTick"));
-
-  // Values use to cross communicate with processNextTick.
-  uint32_t* const fields = env->tick_info()->fields();
-  uint32_t const fields_count = env->tick_info()->fields_count();
-
-  Local<ArrayBuffer> array_buffer =
-      ArrayBuffer::New(env->isolate(), fields, sizeof(*fields) * fields_count);
-
-  args.GetReturnValue().Set(Uint32Array::New(array_buffer, 0, fields_count));
-}
-```
-
-https://github.com/nodejs/node-v0.x-archive/issues/6034
-https://github.com/nodejs/node-v0.x-archive/issues/5943
-
-process.nextTick的表现:
-
-```js
-function cb(arg) {
-  return function() {
-    console.log(arg);
-    process.nextTick(function() {
-      console.log('nextTick - ' + arg);
-    });
+    timeout = 0;
+    if ((mode == UV_RUN_ONCE && !ran_pending) || mode == UV_RUN_DEFAULT)
+      timeout = uv_backend_timeout(loop);
+    // 5. 开始I/O poll, (网络I/O为epoll(Linux为例), 文件系统I/O等其他异步任务为thread pool).
+    // 得到底层通知后, 通常会在本次tick执行I/O回调函数
+    uv__io_poll(loop, timeout);
+    // 6. 执行check任务
+    uv__run_check(loop);
+    uv__run_closing_handles(loop);
+    // ...
+    r = uv__loop_alive(loop);
+    if (mode == UV_RUN_ONCE || mode == UV_RUN_NOWAIT)
+      break;
   }
-}
-
-cb('0')();
-setImmediate(cb('1'));
-setImmediate(cb('2'));
 ```
 
-setImmediate的表现:
+我们着重关注的是步骤`1, 3, 5, 6`, 暂且看做`setTimeout的任务`,`process.nextTick的任务`,`I/O任务`,`setImmediate的任务`.
 
-```js
-setImmediate(function() { console.log('setImmediate'); });
-setTimeout(function() { console.log('setTimeout'); }, 0);
-process.nextTick(function() { console.log('nextTick'); });
-```
+于是我们得到了观察者的执行顺序: `timer > I/O > check`.
 
-```js
-setTimeout(function() {
-  setTimeout(function() {
-    console.log('setTimeout')
-  }, 0);
-  setImmediate(function() {
-    console.log('setImmediate')
-  });
-}, 10);
-```
+即然这样, 为什么第一个例子结果会不确定呢?
 
-```js
-setTimeout(function() {
-  process.nextTick(function () {
-	console.log('nextTick');
-  });
-  setTimeout(function() {
-    console.log('setTimeout')
-  }, 0);
-  setImmediate(function() {
-    console.log('setImmediate')
-  });
-}, 10);
-```
+这时Node对setTimeout改动的结果, 记得最开始提到的setTimeout源码中的重点吗?
+
+setTimeout的任务无论如何都会延时入队, 最早也是在1ms之后.
+所以对于第一个例子, 由于首次call stack的占用时间没法确定, 在next tick时可能已经过了1ms, 也有可能小于1ms,
+所以check和timer的执行先后没法确定.
+
+当我们把process.nextTick加入call stack时, next tick一定最先执行它的任务,
+结束后耗时基本上已经超过1ms了, 于是timer的任务先被执行.
+最后check的任务得到执行, 这也是为什么会有确定的输出结果.
 
 
 # Chapter 1.5: macroTask & microTask
 
-https://html.spec.whatwg.org/multipage/webappapis.html#event-loops
-https://jakearchibald.com/2015/tasks-microtasks-queues-and-schedules/
+紧接上文, 在`process.nextTick`的源码里发现了`MicroTask`这个东西, 当时并没有解释此为何物,
+只描述了行为. 因为提起`microTask`就不得不回到Browser环境来.
+
+## Browser context event loop
+
+> 参见 https://html.spec.whatwg.org/multipage/webappapis.html#event-loops
+
+异步任务都需要依赖一个宿主环境, 由它提供一个称之为"事件循环"的机制, 正如Node一样, 浏览器里的async也依赖这么一个event loop.
+
+相比Node, 浏览器里的event loop就简单的多. 这个loop只检查两类queue: macroTaskQueue, microTaskQueue.
+分别存放macroTask和microTask.
+
+### macroTask
+
+每个event loop可以有多个macroTask队列, 这类任务和setTimeout任务的行为类似,
+都是在每个tick执行队列里的一个任务. 相似的特点还有他们都是在每个tick的开始执行的.
+
+包括: timer task, I/O task
+
+### microTask
+
+每个event loop仅有一个microTask队列, 类似process.nextTick, 一旦执行就一气呵成.
+正符合process.nextTick源码里的microtask的行为.
+
+包括: Promise task
+
+### next tick
+每个tick的执行流程:
+
+# TODO
+> 参见 https://jakearchibald.com/2015/tasks-microtasks-queues-and-schedules/
+
+### 任务类型
+这些任务可以是:
+
++ dispatch事件
++ 解析HTML
++ 执行回调
++ 非阻塞方式获取外部资源(典型的ajax fetch)
++ 响应DOM树的操作
 
 # Chapter 2：Be Careful！
 
@@ -511,19 +386,17 @@ console.log diff / i
 
 在浏览器里, js和UI渲染是互斥的线程, 一旦执行点耗时的逻辑, 页面渲染就卡住了, 必须要等到js跑完. 而这种设计是为了保证交互上逻辑正确性: js触发的UI重绘一定要等到js执行完, 一旦js线程与UI线程并行执行可能导致不可预期的后果.
 
-### 事件循环
-https://html.spec.whatwg.org/multipage/webappapis.html#event-loops
-无论是Node环境还是浏览器环境, 都存在这么个事件循环, 每次循环被称作一个**Tick**, 跑在主线程里, 当代码都执行完之后, 会去异步事件队列取任务执行, 并且每次取一个.
-
 # Chapter 4: 同步事件与异步事件
 
 ### 异步事件
 
-上面提到的计时器触发的事件就属于异步事件. 所有的异步事件触发后都会放入异步事件的队列里, 等到next tick里执行. 所有的I/O操作、消息通知、定时器等系统级别的都是异步事件.
+异步事件又称"任务", 即前文提到的macrotask/microtask.
 
 ### 同步事件
 
-同步事件没有异步事件那么复杂, 他们的执行会在this tick而不用等到next tick, 就是触发即执行. 同步事件是Event Driven Programming(Pub/Sub设计模式)的一个实现, 不需要额外线程或其他底层机制的辅助便可实现, 如Node里的EventEmitter, 触发的都是同步事件, 触发原理就是普通的JavaScript代码遍历一次事件名字对应的数组中保存的回调函数, 很显然这和其他代码并没有什么两样, 所以是同步的.
+同步事件即"事件".
+
+没有异步事件那么复杂, 他们的执行会在this tick而不用等到next tick, 就是触发即执行. 同步事件是Event Driven Programming(Pub/Sub设计模式)的一个实现, 不需要额外线程或其他底层机制的辅助便可实现, 如Node里的EventEmitter, 触发的都是同步事件, 触发原理就是普通的JavaScript代码遍历一次事件名字对应的数组中保存的回调函数, 很显然这和其他代码并没有什么两样, 所以是同步的.
 
 除了EventEmitter, 浏览器中的大多数DOM事件(比如click事件)都是同步的, 为此可以在浏览器里做个试验:
 
@@ -557,11 +430,13 @@ for i in [0..10000]
 	console.log i
 ```
 
-你会发现你的单机并没有生效, 而是在整个循环结束之后打印响应次数的SYNC. 不是说click是同步吗, 为什么会出现这种情况? 其实第一个实验我们忽略了一点: DOM.
+你会发现你的单机并没有生效, 而是在整个循环结束之后打印响应次数的SYNC. 不是说click是同步吗, 为什么会出现这种情况?
+
+看了前面的**任务**自然会明白.
 
 我们谈到同步事件时讲的是**DOM**上的事件, 第一个`a.click()`是DOM API提供的, 或者说是和Node EventEmitter的emit()一样的方式实现的, 由于和普通代码没区别, 肯定在循环中被处理了.
 
-然而真正的单机事件是由操作系统触发, 然后传递给浏览器的, 这属于系统级的事件, 所以是异步的. 当浏览器拿到单击事件通知, 会在底层的回调里调用DOM API的click()方法来实现DOM click. 这和Node里的异步/同步事件协作方式别无二致, 所有的异步函数都是靠底层异步事件通知上层的同步事件, 再由同步事件触发当前环境的回调函数.
+然而真正的单机事件是由操作系统触发, 然后传递给浏览器的, 这属于系统级的事件(task), 所以是异步的. 当浏览器拿到单击事件通知, 会在底层的回调里调用DOM API的click()方法来实现DOM click. 这和Node里的异步/同步事件协作方式别无二致, 所有的异步函数都是靠底层异步事件通知上层的同步事件, 再由同步事件触发当前环境的回调函数.
 
 # Chapter 5：巧用setTimeout
 
@@ -659,4 +534,4 @@ liner = (i) ->
 liner 0
 ```
 
-现在就可以看到灰度的渐变过程了, 这也是Worker出现前早先解决密集任务下cpu负载过高问题的手段.
+现在就可以看到灰度的渐变过程了, 这也是Worker出现前早先解决密集任务下cpu负载过高问题的思路: 分割任务.
